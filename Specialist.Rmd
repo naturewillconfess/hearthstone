@@ -77,4 +77,4 @@ x_1,x_2,x_3 \geq 0
 \end{cases}$$
 
 
-So, expected match winrate given deck  winrates is a lot easier to compute for Specialist format than for formats with variable sets of available decks (e.g. Last Hero Standing, Conquest) or complex ban rules (e.g. Dima _RDU_ Radu's Strike format). An interactive Shiny app for calculating match winrates is available at _bruh.shinyapps.com_.
+So, expected match winrate given deck  winrates is a lot easier to compute for Specialist format than for formats with variable sets of available decks (e.g. Last Hero Standing, Conquest) or complex ban rules (e.g. Dima _RDU_ Radu's Strike format). An interactive app for calculating match winrates is available at _https://naturewillconfess.shinyapps.io/specialist/_.
