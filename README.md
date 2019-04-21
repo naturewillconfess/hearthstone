@@ -2,6 +2,6 @@
 
 [Methodology](https://github.com/naturewillconfess/Specialist_Nash/blob/master/Specialist.pdf)
 
-[Shiny app](https://bruh.shinyapps.io/bruh)
+[Shiny app](https://naturewillconfess.shinyapps.io/Specialist)
 
-[Source code for the Shiny app](https://github.com/naturewillconfess/Specialist_Nash/blob/master/Shiny/app.R)
+[Source code for the Shiny app](https://github.com/naturewillconfess/Specialist_Nash/blob/master/Specialist/app.R)
