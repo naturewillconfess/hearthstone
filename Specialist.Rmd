@@ -1,6 +1,5 @@
 ---
 title: "Hearthstone Specialist format: Nash equlibrium strategy"
-subtitle: ''
 author: "Samvel Avakian"
 date: 'April, 2019'
 output: pdf_document
