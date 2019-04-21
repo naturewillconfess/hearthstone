@@ -1,5 +1,4 @@
-# Specialist_Nash
-Nash equilibrium calculator for Hearthstone Specialist format
+# Nash equilibrium calculator for Hearthstone Specialist format
 
 [Methodology](https://github.com/naturewillconfess/Specialist_Nash/blob/master/Specialist.pdf)
 
