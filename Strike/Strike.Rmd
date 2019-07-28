@@ -1,7 +1,7 @@
 ---
-title: "Strike"
+title: "Strike format"
 author: "Samvel Avakian"
-date: "28 07 2019"
+date: "July 2019"
 output: pdf_document
 ---
 
@@ -17,5 +17,5 @@ Strike format was developed by Dima _Rdu_ Radu and can be described as follows (
     + Since hearthstone matches usually follow formats with an odd maximum amount of games (as to prevent draws), _m_ has to satisfy $(n^2-2m) \bmod 2 = 1$
 * Players play out remaining matches
 
-Since every matchup is played, there are no pick order decisions.Thus, Hero's expected winrate is a probability of winning at least  $\frac{n^2-2m+1}{2}$ of $n^2-2m$ different Bernoulli trials, which is equivalent of a sum of these trials being equal or greater than $n^2-2m$. Using convolution, one can easily figure out distribution of the number of wins and compute the winrate. A function to do just that is provided at https://github.com/naturewillconfess/Specialist.
+Since every matchup is played, there are no pick order decisions.Thus, Hero's expected winrate is a probability of winning at least  $\frac{n^2-2m+1}{2}$ of $n^2-2m$ different Bernoulli trials, which is equivalent of a sum of these trials being equal or greater than $n^2-2m$. Using convolution, one can easily figure out distribution of the number of wins and compute the winrate. A function to do just that is provided at https://github.com/naturewillconfess/hearthstoneR/tree/master/Strike.
 As far as the optimal strategy goes, it is trivial that eliminating the worst remaining matchup is always optimal. 

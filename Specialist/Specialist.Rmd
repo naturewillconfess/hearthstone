@@ -1,7 +1,7 @@
 ---
 title: "Hearthstone competitive format: Nash equlibrium perspective"
 author: "Samvel Avakian"
-date: 'May 2019'
+date: 'July 2019'
 output: pdf_document
 indent: true
 header-includes:
