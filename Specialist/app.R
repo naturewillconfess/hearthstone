@@ -26,7 +26,7 @@ ui <- fluidPage(
     column(2, uiOutput("Hero")),
     column(2, uiOutput("Opp")), 
     column(6, tableOutput("ExpWinrate"))),
-  fluidRow(column(6, offset = , "See methodology and source code at", a("my Github", href = "https://github.com/naturewillconfess/Specialist_Nash")))
+  fluidRow(column(6, offset = , "See methodology and source code at", a("my Github", href = "https://github.com/naturewillconfess/hearthstoneR")))
 )
 server <- function(input, output) {
   ##############
