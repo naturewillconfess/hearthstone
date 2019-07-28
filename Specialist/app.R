@@ -1,7 +1,6 @@
 library(shiny)
 library(shinyMatrix)
 library(lpSolve)
-library(stringr)
 
 ui <- fluidPage(
   
@@ -31,21 +30,36 @@ ui <- fluidPage(
 )
 server <- function(input, output) {
   ##############
-  dagame <- function(W) {
+  dagame <- function(W, player = c("Hero", "Opponent")) {
+    if (player == "Opponent") W <- t(1-W)
     n <- ncol(W)
+    m <- nrow(W)
     WR <- lp(direction = "max",
-             objective.in = c(rep(0,n),1),
-             const.mat = rbind(cbind(t(W), rep(-1,n)), c(rep(1,n),0), cbind(diag(n), rep(0,n))),
-             const.dir = c(rep(">=", n), "=", rep(">=",n)),
-             const.rhs = c(rep(0,n),1,rep(0,n))
+             objective.in = c(rep(0,m),1),
+             const.mat = rbind(cbind(t(W), rep(-1,n)), c(rep(1,m),0), cbind(diag(m), rep(0,m))),
+             const.dir = c(rep(">=", n), "=", rep(">=",m)),
+             const.rhs = c(rep(0,n),1,rep(0,m))
     )
     WR
   }
-  mijwr_no_0 <- function(i, j, m = 2, W) {
+  
+  mijwr_no_0 <- function(Hero, Opp, bestof = 5, W, player = c("Hero", "Opponent")) {
+    ####
+    #i - score of the hero (of the calculation, not the matrix!)
+    #j - score of the opponent
+    #m - score to get
+    m <- (bestof + 1)/2
+    if (player == "Hero") {
+      i <- Hero
+      j <- Opp
+    } else {
+      i <- Opp
+      j <- Hero
+    }
     if (j == m) {
       mij <- 0
     } else {
-      p <- dagame(W)$solution[4]
+      p <- dagame(W, player)$solution[4]
       n <- (2*m-1-i-j)
       kmin <- m-i
       k <- kmin:n
@@ -53,21 +67,24 @@ server <- function(input, output) {
       mij
     }
   }
-  mijwr <- function(i = 0, j = 0, m = 2, W) {
-    if (i == 0 & j == 0) {
-      m01 <- mijwr_no_0(0, 1, m, W)
-      m10 <- mijwr_no_0(1, 0, m, W)
+  
+  
+  
+  mijwr <- function(Hero = 0, Opp = 0, bestof = 5, W, player = c("Hero", "Opponent")) {
+    if (Hero == 0 & Opp == 0) {
+      m01 <- mijwr_no_0(0, 1, bestof, W, player)
+      m10 <- mijwr_no_0(1, 0, bestof, W, player)
       mij <- W[1,1]*m10 + (1-W[1,1])*m01
-    } else if (i+j > 2*m-1) {
+    } else if (Hero + Opp > bestof | Hero > (bestof + 1)/2 | Opp > (bestof + 1)/2) {
       mij <- "Please, enter valid score/format"
     } else {
-      mij <- mijwr_no_0(i,j,m,W)
+      mij <- mijwr_no_0(Hero, Opp, bestof, W, player)
     }
     mij
   }
   
-  zolution <- function(W) {
-    dagame(W)$solution[1:3]
+  zolution <- function(W, player) {
+    dagame(W, player = player)$solution[1:3]
   }
   topercent <- function(x) {
     if (is.numeric(x)) {
@@ -77,6 +94,27 @@ server <- function(input, output) {
     }
     per
   }
+  Nash <- function(W, Hero = 0, Opp = 0, bestof = 5) {
+    resultsdf <- as.data.frame(matrix(topercent(zolution(W, "Hero")), nrow = 1,ncol = 3, dimnames = list("", c("Primary", "Secondary", "Tertiary"))))
+    resultsdf2 <- as.data.frame(matrix(topercent(zolution(W, "Opponent")), nrow = 1,ncol = 3, dimnames = list("", c("Primary", "Secondary", "Tertiary"))))
+    results <- rbind(resultsdf,resultsdf2)
+    rownames(results) <- c("Hero", "Opponent")
+    
+    mw <- mijwr(Hero, Opp, bestof, W, "Hero")
+    fg <- unname(W[1,1])
+    og <- dagame(W, "Hero")$solution[4]
+    winmatrix <- matrix(topercent(c(mw, fg, og)), 1, 3, dimnames = list("", c("Match", "First game", "Subsequent games")))
+    
+    mw <- mijwr(Hero, Opp, bestof, W, "Opponent")
+    fg <- unname(t(1-W)[1,1])
+    og <- dagame(W, "Opponent")$solution[4]
+    winmatrix2 <- matrix(topercent(c(mw, fg, og)), 1, 3, dimnames = list("", c("Match", "First game", "Subsequent games")))
+    winmatrix <- rbind(winmatrix, winmatrix2)
+    rownames(winmatrix) <- c("Hero", "Opponent")
+    
+    nash <- list(Nash = results, winrates = winmatrix, matchups = W, scores = c(Hero = Hero, Opponent = Opp), format = paste0("Best of ", bestof))
+    nash
+  }
   ##############
   output$Hero <- renderUI( {
     numericInput("HeroScore", "Hero", 0, min = 0, max = (input$bestof + 1)/2, step = 1)  
@@ -85,29 +123,14 @@ server <- function(input, output) {
     numericInput("OppScore", "Opponent", 0, min = 0, max = (input$bestof + 1)/2, step = 1)
   })
   output$Results <- renderTable({
-    Winrates2 <- t(1-input$Winrates)
-    resultsdf <- as.data.frame(matrix(topercent(zolution(input$Winrates)), nrow = 1,ncol = 3, dimnames = list("", c("Primary", "Secondary", "Tertiary"))))
-    resultsdf2 <- as.data.frame(matrix(topercent(zolution(Winrates2)), nrow = 1,ncol = 3, dimnames = list("", c("Primary", "Secondary", "Tertiary"))))
-    results <- rbind(resultsdf,resultsdf2)
-    rownames(results) <- c("Hero", "Opponent")
-    results
+    req(input$HeroScore, input$OppScore)
+    nash <- Nash(input$Winrates, input$HeroScore, input$OppScore,input$bestof)
+    nash$Nash
   }, rownames = TRUE)
   output$ExpWinrate <- renderTable({
     req(input$HeroScore, input$OppScore)
-    mw <- topercent(mijwr(i = input$HeroScore, j = input$OppScore, m = (input$bestof + 1)/2, W = input$Winrates))
-    fg <- topercent(unname(input$Winrates[1,1]))
-    og <- topercent(dagame(input$Winrates)$solution[4])
-    wrs <- c(mw, fg, og)
-    winmatrix <- matrix(wrs, 1, 3, dimnames = list("", c("Match", "First game", "Subsequent games")))
-    Winrates2 <- t(1-input$Winrates)
-    mw <- topercent(mijwr(i = input$OppScore, j = input$HeroScore, m = (input$bestof + 1)/2, W = Winrates2))
-    fg <- topercent(unname(Winrates2[1,1]))
-    og <- topercent(dagame(Winrates2)$solution[4])
-    wrs <- c(mw, fg, og)
-    winmatrix2 <- matrix(wrs, 1, 3, dimnames = list("", c("Match", "First game", "Subsequent games")))
-    winmatrix <- rbind(winmatrix, winmatrix2)
-    rownames(winmatrix) <- c("Hero", "Opponent")
-    winmatrix
+    nash <- Nash(input$Winrates, input$HeroScore, input$OppScore,input$bestof)
+    nash$winrates
   }, rownames = TRUE)
 }
 
