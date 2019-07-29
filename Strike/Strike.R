@@ -29,8 +29,8 @@ strike_results <- function (W, Hero = 0, Opp = 0, NashBans = TRUE, nbans = 0, He
     } else if (2*nbans > (length(W)-1)) {
       stop("Too many bans")
     } else {
-      HeroBans <- unname(which(W >= sort(W)[length(W)-nbans+1], arr.ind = T))[1:nbans,]
-      OppBans <- unname(which(W <= sort(W)[nbans], arr.ind = T))[1:nbans,]
+      HeroBans <- unname(which(W <= sort(W)[nbans], arr.ind = T))[1:nbans,]
+      OppBans <- unname(which(W >= sort(W)[length(W)-nbans+1], arr.ind = T))[1:nbans,]
     }
   }
   
@@ -45,7 +45,7 @@ strike_results <- function (W, Hero = 0, Opp = 0, NashBans = TRUE, nbans = 0, He
   win_pdf <- convolve.direct(WV)
   req_win <- length(WV) %/% 2 + 1 - Hero
   win_prob <- sum(win_pdf[(req_win + 1):length(win_pdf)])
-  win_prob <- c(Hero = win_prob, Opponent = 1-win_prob)
+  win_prob <- matrix(c(Hero = win_prob, Opponent = 1-win_prob),2,1,dimnames = list(c("Hero","Opponent"),NULL))
   
   results <- list(winrates = win_prob, 
                   matchups = W1, 
@@ -56,5 +56,3 @@ strike_results <- function (W, Hero = 0, Opp = 0, NashBans = TRUE, nbans = 0, He
                   isnash = NashBans)
   results
 }
-
-strike_results(WM, 0, 0, T, 2)

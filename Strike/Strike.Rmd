@@ -3,6 +3,7 @@ title: "Strike format"
 author: "Samvel Avakian"
 date: "July 2019"
 output: pdf_document
+urlcolor: blue
 ---
 
 ```{r setup, include=FALSE}
@@ -11,11 +12,12 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Strike format
 Strike format was developed by Dima _Rdu_ Radu and can be described as follows (extrapolating the n-deck format from the original 3-deck format):
+
 * Both players create a set of _n_  decks of 30 cards
     + Each deck has to be of different class, so $n \leq 9$
 * Each player bans _m_ matchups out of $n^2$ 
-    + Since hearthstone matches usually follow formats with an odd maximum amount of games (as to prevent draws), _m_ has to satisfy $(n^2-2m) \bmod 2 = 1$
+    + Since Hearthstone matches usually follow formats with an odd maximum amount of games (as to prevent draws), _m_ has to satisfy $(n^2-2m) \bmod 2 = 1$
 * Players play out remaining matches
 
-Since every matchup is played, there are no pick order decisions.Thus, Hero's expected winrate is a probability of winning at least  $\frac{n^2-2m+1}{2}$ of $n^2-2m$ different Bernoulli trials, which is equivalent of a sum of these trials being equal or greater than $n^2-2m$. Using convolution, one can easily figure out distribution of the number of wins and compute the winrate. A function to do just that is provided at https://github.com/naturewillconfess/hearthstoneR/tree/master/Strike.
+Since every matchup is played, there are no pick order decisions. Thus, Hero's expected winrate is a probability of winning at least  $\frac{n^2-2m+1}{2}$ of $n^2-2m$ different Bernoulli trials, which is equivalent of a sum of these trials being equal or greater than $n^2-2m$. Using convolution, one can easily figure out distribution of the number of wins and compute the winrate. A function to do just that is provided [here](https://github.com/naturewillconfess/hearthstoneR/tree/master/Strike).
 As far as the optimal strategy goes, it is trivial that eliminating the worst remaining matchup is always optimal. 

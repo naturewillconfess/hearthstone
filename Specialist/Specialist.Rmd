@@ -3,6 +3,7 @@ title: "Hearthstone competitive format: Nash equlibrium perspective"
 author: "Samvel Avakian"
 date: 'July 2019'
 output: pdf_document
+urlcolor: blue
 indent: true
 header-includes:
    - \usepackage{amsmath}
@@ -80,4 +81,4 @@ where $x_i$ is the optimal probability of choosing $i$-ry deck for Hero. The int
 
 # Conclusion
 
-In this paper I show that expected match winrate given deck winrates is a lot easier to compute for Specialist format than for formats with variable sets of available decks (e.g. Last Hero Standing, Conquest). An interactive Shiny app for calculating match winrates (and more) is available at https://naturewillconfess.com/specialist/.
+In this paper I show that expected match winrate given deck winrates is a lot easier to compute for Specialist format than for formats with variable sets of available decks (e.g. Last Hero Standing, Conquest). An interactive Shiny app for calculating match winrates (and more) is available at [my website](https://naturewillconfess.com/specialist/).
