@@ -1,0 +1,178 @@
+---
+title: "Conquest competitive format: Nash equilibrium in mixed strategies"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Conquest}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+  \usepackage{amsmath}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+
+# Introduction
+
+Conquest format is used in official Hearthstone (Blizzard's hit collectible card game) competitions. Here's how it works:
+
+* Both players create a set of $n$ decks
+* Both players ban $m$ decks, if there is a ban phase
+   + If there is a shield phase, both players shield $k$ decks to prevent them from being banned
+* Players secretly pick one non-banned deck and play a game between these decks
+   + The winner of the game can no longer use the winning deck
+   + Other than that, players can secretly pick any non-banned deck each game, no matter the result of prior games
+* The process repeats until one player has won with all their non-banned decks (or all but one deck in some formats using shield phase)
+
+
+It is clear that the main strategic feature of this format is the blind pick phase (and, to some extent, the ban/shield phase). Hearthstone community calls the choice that players make in this phase the "Pick order".
+
+# Pick order
+
+There is a long-standing belief in competitive hearthstone community that randomizing (with equal probabilities) pick order is optimal. While it is true for best-of-3 conquest matches, I will show below that it's not true for best-of-5, and, as a result, for all other conquest formats. 
+
+## Best of three
+Let's first look at regular best-of-three conquest. To win, players have to win with 2 decks in three games. We will look at everything from the perspective of the first player. Let $W$ be a winrate matrix
+
+$$W = \left( {\begin{array}{*{20}{c}}{{w_{11}}}&{{w_{12}}}\\{{w_{21}}}&{{w_{22}}}\end{array}} \right)$$
+Let $G_0$ be a payoff matrix of a pick order game before round one, $G_{-1,0}$ be the value of a subgame that happens when the first deck of the first player is eliminated (because of winning the game with it), and so on. Then
+
+$${G_0} = \left( {\begin{array}{*{20}{c}}{{w_{11}}{G_{ - 1,0}} + (1 - {w_{11}}){G_{0, - 1}}}&{{w_{12}}{G_{ - 1,0}} + (1 - {w_{12}}){G_{0, - 2}}}\\{{w_{21}}{G_{ - 2,0}} + (1 - {w_{21}}){G_{0, - 1}}}&{{w_{22}}{G_{ - 2,0}} + (1 - {w_{22}}){G_{0, - 2}}}\end{array}} \right)$$
+When there's only one deck left to win with (as is the case with $G_{-1,0}$), calculating the value of the subgame is trivial - it's the probability of the player winning at least one game with this remaining deck. Vice versa, when the opponent has only one deck left to win with, the value of the game is the probability of winning all remaining games. Thus,
+
+$$\begin{gathered}
+G_{-1,0} = 1 - (1 - w_{21})(1 - w_{22}) = 1 - (1 - w_{21} - w_{22} + w_{21}w_{22}) = w_{21} + w_{22} - w_{21}w_{22} \\
+G_{-2,0} = 1 - (1 - w_{11})(1 - w_{12}) = 1 - (1 - w_{11} - w_{12} + w_{11}w_{12}) = w_{11} + w_{12} - w_{11}w_{12} \\
+G_{0,-1} = w_{12}w_{22} \\
+G_{0,-2} = w_{11}w_{21}
+\end{gathered}$$
+
+Then, using brackets to denote coordinates:
+
+$$\begin{gathered}
+{G_0}[1,1] = {w_{11}}({w_{21}} + {w_{22}} - {w_{21}}{w_{22}}) + (1 - {w_{11}}){w_{12}}{w_{22}} = {w_{11}}{w_{21}} + {w_{11}}{w_{22}} - {w_{11}}{w_{21}}{w_{22}} + {w_{12}}{w_{22}} - {w_{11}}{w_{12}}{w_{22}}\\
+{G_0}[1,2] = {w_{12}}({w_{21}} + {w_{22}} - {w_{21}}{w_{22}}) + (1 - {w_{12}}){w_{11}}{w_{21}} = {w_{12}}{w_{21}} + {w_{12}}{w_{22}} - {w_{12}}{w_{21}}{w_{22}} + {w_{11}}{w_{21}} - {w_{11}}{w_{12}}{w_{21}}\\
+{G_0}[2,1] = {w_{21}}({w_{11}} + {w_{12}} - {w_{11}}{w_{12}}) + (1 - {w_{21}}){w_{12}}{w_{22}} = {w_{21}}{w_{11}} + {w_{21}}{w_{12}} - {w_{21}}{w_{11}}{w_{12}} + {w_{12}}{w_{22}} - {w_{21}}{w_{12}}{w_{22}}\\
+{G_0}[2,2] = {w_{22}}({w_{11}} + {w_{12}} - {w_{11}}{w_{12}}) + (1 - {w_{22}}){w_{11}}{w_{21}} = {w_{22}}{w_{11}} + {w_{22}}{w_{12}} - {w_{22}}{w_{11}}{w_{12}} + {w_{11}}{w_{21}} - {w_{22}}{w_{11}}{w_{21}}
+\end{gathered}$$
+
+$${G_0} = \left( 
+{\begin{array}
+{*{20}{c}}{{w_{11}}{w_{21}} + {w_{11}}{w_{22}} + {w_{12}}{w_{22}} - {w_{11}}{w_{21}}{w_{22}} - {w_{11}}{w_{12}}{w_{22}}}&{{w_{12}}{w_{21}} + {w_{12}}{w_{22}} + {w_{11}}{w_{21}} - {w_{12}}{w_{21}}{w_{22}} - {w_{11}}{w_{12}}{w_{21}}}\\{{w_{21}}{w_{11}} + {w_{21}}{w_{12}} + {w_{12}}{w_{22}} - {w_{21}}{w_{11}}{w_{12}} - {w_{21}}{w_{12}}{w_{22}}}&{{w_{22}}{w_{11}} + {w_{22}}{w_{12}} + {w_{11}}{w_{21}} - {w_{22}}{w_{11}}{w_{12}} - {w_{22}}{w_{11}}{w_{21}}}\end{array}} \right)$$
+
+Nash equilibria can be found via solving the following linear programming problem (see, for example, Owen, 1968) with respect to probabilities of picking decks 1 or 2 - $x_1$ and $x_2$
+
+$$\begin{gathered}
+\lambda \rightarrow \max\\
+{x_1}({w_{11}}{w_{21}} + {w_{11}}{w_{22}} + {w_{12}}{w_{22}} - {w_{11}}{w_{21}}{w_{22}} - {w_{11}}{w_{12}}{w_{22}}) + \\
+{x_2}({w_{21}}{w_{11}} + {w_{21}}{w_{12}} + {w_{12}}{w_{22}} - {w_{21}}{w_{11}}{w_{12}} - {w_{21}}{w_{12}}{w_{22}}) - \lambda  \geq 0\\
+{x_1}({w_{12}}{w_{21}} + {w_{12}}{w_{22}} + {w_{11}}{w_{21}} - {w_{12}}{w_{21}}{w_{22}} - {w_{11}}{w_{12}}{w_{21}}) + \\
+{x_2}({w_{22}}{w_{11}} + {w_{22}}{w_{12}} + {w_{11}}{w_{21}} - {w_{22}}{w_{11}}{w_{12}} - {w_{22}}{w_{11}}{w_{21}}) - \lambda  \geq 0\\
+{x_1} + {x_2} = 1\\
+{x_1} \geq 0\\
+{x_2} \geq 0
+\end{gathered}$$
+Due to the symmetry of the payoff matrix, this problem can be rewritten as
+
+$$\begin{gathered}
+\lambda \rightarrow \max\\
+a{x_1}+b{x_2} - \lambda  \geq 0\\
+b{x_1}+a{x_2} - \lambda  \geq 0\\
+{x_1} + {x_2} = 1\\
+{x_1} \geq 0\\
+{x_2} \geq 0
+\end{gathered}$$
+
+where $$\begin{gathered}
+a = {w_{11}}{w_{21}} + {w_{11}}{w_{22}} + {w_{12}}{w_{22}} - {w_{11}}{w_{21}}{w_{22}} - {w_{11}}{w_{12}}{w_{22}}\\
+b={w_{21}}{w_{11}} + {w_{21}}{w_{12}} + {w_{12}}{w_{22}} - {w_{21}}{w_{11}}{w_{12}} - {w_{21}}{w_{12}}{w_{22}}
+\end{gathered}$$
+
+
+
+Then (not mentioning other conditions for clarity) 
+$$\lambda_{max} = min(b+(a-b)x_1,a-(a-b)x_1)$$
+Since $\frac{d(b+(a-b)x_1)}{dx_1}=-\frac{d(a-(a-b)x_1)}{dx_1}=(a-b)=const$, it is clear that, if it satisfies other conditions (and it clearly does), and if $a \neq b$, $b+(a-b)x_1=a-(a-b)x_1 \implies x_1=x_2=0.5$. If $a=b$, all of the elements of the payoff matrix are the same, so every feasible combination of $x_1$ and $x_2$ is a Nash equilibrial strategy. The value of the game is then 
+
+$$G=\frac{a+b}{2}=\frac{2w_{11}w_{21} + w_{11}w_{22} + w_{21}w_{12} + 2w_{12}w_{22} - w_{11}w_{21}w_{22} - w_{11}w_{12}w_{22} - w_{21}w_{11}w_{12} - w_{21}w_{12}w_{22}}{2}$$
+
+## Best of five
+For a best-of-five conquest match, the payoff matrix is as follows.
+$$G_0 = \begin{pmatrix}
+w_{11}G_{ - 1,0} + (1 - w_{11})G_{0, - 1} & w_{12}G_{ - 1,0} + (1 - w_{12})G_{0, - 2} & w_{13}G_{ - 1,0} + (1 - w_{13})G_{0, - 3}\\
+w_{21}G_{ - 2,0} + (1 - w_{21})G_{0, - 1} & w_{22}G_{ - 2,0} + (1 - w_{22})G_{0, - 2} & w_{23}G_{ - 2,0} + (1 - w_{23})G_{0, - 3}\\
+w_{31}G_{ - 3,0} + (1 - w_{31})G_{0, - 1} & w_{32}G_{ - 3,0} + (1 - w_{32})G_{0, - 2} & w_{33}G_{ - 3,0} + (1 - w_{33})G_{0, - 3}
+\end{pmatrix}$$
+
+
+
+
+
+$${G_{ - 1,0}} = \left( {\begin{array}{*{20}{c}}{\begin{array}{*{20}{c}}{{w_{21}}{G_{ - 12,0}} + (1 - {w_{21}}){G_{ - 1, - 1}}}\\{{w_{31}}{G_{ - 13,0}} + (1 - {w_{31}}){G_{ - 1, - 1}}}\end{array}}&{\begin{array}{*{20}{c}}{{w_{22}}{G_{ - 12,0}} + (1 - {w_{22}}){G_{ - 1, - 2}}}\\{{w_{32}}{G_{ - 13,0}} + (1 - {w_{32}}){G_{ - 1, - 2}}}\end{array}}&{\begin{array}{*{20}{c}}{{w_{23}}{G_{ - 12,0}} + (1 - {w_{23}}){G_{ - 1, - 3}}}\\{{w_{33}}{G_{ - 13,0}} + (1 - {w_{33}}){G_{ - 1, - 3}}}\end{array}}\end{array}} \right)$$
+
+Let's take a little detour. When $(\frac{1}{2},\frac{1}{2};\frac{1}{3},\frac{1}{3},\frac{1}{3})$ is the Nash equilibrium in mixed strategies for this game? The answer can be found by plugging the optimal strategy profile into equal conditional expected payoff conditions (see, for example, Owen, 1968. The intuition is simple - if a player uses a strategy with non-zero probability in an equilibrium, expected payoff conditional on the opponent's strategy has to be equal to payoffs of other strategies used with non-zero probabilities, otherwise there is a clear opportunity for profitable deviation) and solving the resulting system of equations. It's relatively easy to get the following solution:
+
+$$\begin{cases}
+w_{12} = w_{22}+2w_{23}-2w_{11}\\
+w_{13} = 2w_{22}+w_{23}-2w_{11}\\
+w_{21} = 2w_{22}+2w_{23}-3w_{11}\\
+\end{cases}$$
+
+This is just a necessary condition - the game can still have other equilibria, but it's enough for our purposes. Let's check if this subgame that happens after the first player wins with the first deck satisfies at least the first condition.
+
+$$\begin{gathered}
+G_{-12,0} = 1-(1-w_{31})(1-w_{32})(1-w_{33})=w_{31}+w_{32}+w_{33}-w_{31}w_{32}-w_{31}w_{33}-w_{32}w_{33} + w_{31}w_{32}w_{33}\\
+G_{-13,0} = 1-(1-w_{21})(1-w_{22})(1-w_{23})=w_{21}+w_{22}+w_{23}-w_{21}w_{22}-w_{21}w_{23}-w_{22}w_{23} + w_{21}w_{22}w_{23}\\
+G_{-1,-1} = \frac{2w_{22}w_{32} + w_{22}w_{33} + w_{32}w_{23} + 2w_{23}w_{33} - w_{22}w_{32}w_{33} - w_{22}w_{23}w_{33} - w_{32}w_{22}w_{23} - w_{32}w_{23}w_{33}}{2}\\
+G_{-1,-2} = \frac{2w_{21}w_{31} + w_{21}w_{33} + w_{31}w_{23} + 2w_{23}w_{33} - w_{21}w_{31}w_{33} - w_{21}w_{23}w_{33} - w_{31}w_{21}w_{23} - w_{31}w_{23}w_{33}}{2}\\
+G_{-1,-3} = \frac{2w_{21}w_{31} + w_{21}w_{32} + w_{31}w_{22} + 2w_{22}w_{32} - w_{21}w_{31}w_{32} - w_{21}w_{22}w_{32} - w_{31}w_{21}w_{22} - w_{31}w_{22}w_{32}}{2}\\
+\end{gathered}$$
+
+$$\begin{gathered}
+G_{ - 1,0}[1,1] = w_{21}(w_{31}+w_{32}+w_{33}-w_{31}w_{32}-w_{31}w_{33}-w_{32}w_{33} + w_{31}w_{32}w_{33})+\\
++(1-w_{21})\frac{2w_{22}w_{32} + w_{22}w_{33} + w_{32}w_{23} + 2w_{23}w_{33} - w_{22}w_{32}w_{33} - w_{22}w_{23}w_{33} - w_{32}w_{22}w_{23} - w_{32}w_{23}w_{33}}{2}\\
+G_{ - 1,0}[1,2] = w_{22}(w_{31}+w_{32}+w_{33}-w_{31}w_{32}-w_{31}w_{33}-w_{32}w_{33} + w_{31}w_{32}w_{33}) +\\
++(1-w_{22})\frac{2w_{21}w_{31} + w_{21}w_{33} + w_{31}w_{23} + 2w_{23}w_{33} - w_{21}w_{31}w_{33} - w_{21}w_{23}w_{33} - w_{31}w_{21}w_{23} - w_{31}w_{23}w_{33}}{2}\\
+G_{ - 1,0}[2,2] = w_{32}(w_{21}+w_{22}+w_{23}-w_{21}w_{22}-w_{21}w_{23}-w_{22}w_{23} + w_{21}w_{22}w_{23}) +\\
++(1-w_{32})(\frac{2w_{21}w_{31} + w_{21}w_{33} + w_{31}w_{23} + 2w_{23}w_{33} - w_{21}w_{31}w_{33} - w_{21}w_{23}w_{33} - w_{31}w_{21}w_{23} - w_{31}w_{23}w_{33}}{2})\\
+G_{ - 1,0}[2,3] = w_{33}(w_{21}+w_{22}+w_{23}-w_{21}w_{22}-w_{21}w_{23}-w_{22}w_{23} + w_{21}w_{22}w_{23}) +\\
++(1-w_{33})(\frac{2w_{21}w_{31} + w_{21}w_{32} + w_{31}w_{22} + 2w_{22}w_{32} - w_{21}w_{31}w_{32} - w_{21}w_{22}w_{32} - w_{31}w_{21}w_{22} - w_{31}w_{22}w_{32}}{2})
+\end{gathered}$$
+
+Finally, let's check the first condition
+
+$$\begin{gathered}
+RHS=w_{21}w_{32}+w_{22}w_{32}+w_{23}w_{32}-w_{21}w_{22}w_{32}-w_{21}w_{23}w_{32}-w_{22}w_{23}w_{32} + w_{21}w_{22}w_{23}w_{32} + \\
+\frac{2w_{21}w_{31} + w_{21}w_{33} + w_{23}w_{31} + 2w_{23}w_{33} - w_{21}w_{31}w_{33} - w_{21}w_{23}w_{33} - w_{21}w_{23}w_{31} - w_{23}w_{31}w_{33}}{2}-\\
+w_{32}(\frac{2w_{21}w_{31} + w_{21}w_{33} + w_{23}w_{31} + 2w_{23}w_{33} - w_{21}w_{31}w_{33} - w_{21}w_{23}w_{33} - w_{21}w_{23}w_{31} - w_{23}w_{31}w_{33}}{2})+\\
+2w_{21}w_{33}+2w_{22}w_{33}+2w_{23}w_{33}-w_{21}w_{22}2w_{33}-2w_{21}w_{23}w_{33}-w_{22}w_{23}2w_{33} + w_{21}w_{22}w_{23}2w_{33}+\\
+2w_{21}w_{31} + w_{21}w_{32} + w_{22}w_{31} + 2w_{22}w_{32} - w_{21}w_{31}w_{32} - w_{21}w_{22}w_{32} - w_{21}w_{22}w_{31} - w_{22}w_{31}w_{32}-\\
+w_{33}(2w_{21}w_{31} + w_{21}w_{32} + w_{22}w_{31} + 2w_{22}w_{32} - w_{21}w_{31}w_{32} - w_{21}w_{22}w_{32} - w_{21}w_{22}w_{31} - w_{22}w_{31}w_{32})-\\
+(2w_{21}w_{31}+2w_{21}w_{32}+2w_{21}w_{33}-2w_{21}w_{31}w_{32}-2w_{21}w_{31}w_{33}-2w_{21}w_{32}w_{33} + 2w_{21}w_{31}w_{32}w_{33})-\\
+(2w_{22}w_{32} + w_{22}w_{33} + w_{23}w_{32} + 2w_{23}w_{33} - w_{22}w_{32}w_{33} - w_{22}w_{23}w_{33} - w_{22}w_{23}w_{32} - w_{23}w_{32}w_{33})+\\
+w_{21}(2w_{22}w_{32} + w_{22}w_{33} + w_{23}w_{32} + 2w_{23}w_{33} - w_{22}w_{32}w_{33} - w_{22}w_{23}w_{33} - w_{22}w_{23}w_{32} - w_{23}w_{32}w_{33})
+\end{gathered}$$
+
+
+$$\begin{gathered}
+LHS=w_{22}w_{31}+w_{22}w_{32}+w_{22}w_{33}-w_{22}w_{31}w_{32}-w_{22}w_{31}w_{33}-w_{22}w_{32}w_{33} + w_{22}w_{31}w_{32}w_{33}+\\
+\frac{2w_{21}w_{31} + w_{21}w_{33} + w_{23}w_{31} + 2w_{23}w_{33} - w_{21}w_{31}w_{33} - w_{21}w_{23}w_{33} - w_{21}w_{23}w_{31} - w_{23}w_{31}w_{33}}{2}-\\
+w_{22}(\frac{2w_{21}w_{31} + w_{21}w_{33} + w_{23}w_{31} + 2w_{23}w_{33} - w_{21}w_{31}w_{33} - w_{21}w_{23}w_{33} - w_{21}w_{23}w_{31} - w_{23}w_{31}w_{33}}{2})
+\end{gathered}$$
+
+
+
+One can easily realize this monstrosity doesn't hold - for example, by checking if there are any like terms for the $w_{22}w_{23}w_{31}w_{33}$ on the RHS. Since this necessary condition doesn't hold, popular conjecture regarding equal-probability Nash equilibrium in mixed strategies doesn't hold, at least after the first game. I will not get into it, but solving subgames games sequentially via a linear programming solver shows that the conjecture doesn't hold for any of the non-degenerate nodes  - in other words, in a general case Nash-equilibrial strategy involves unequal mixing at every step of the game except when one player has to win all remaining games, or when the remaining games constitute a best-of-three.
+
+## hearthstone package and Conquest format
+hearthstone package provides several functions that deal with the Conquest format.
+
+* `conquest_nash()` is a function that finds subgame perfect equilibria by calculating Nash equilibria from the bottom of the extended form game tree up. It uses lpSolve to solve subgames (so it finds a single optimal strategy), and it doesn't use optimization techniques (even lossless ones like alpha-beta pruning).
+* `conquest_nash_short()` is `conquest_nash()`, but for Conquest matches in which players have to win with all but one deck to win.
+* `ban_nash()` is a function that finds the Nash equilibrium in mixed strategies for the ban phase - in other words, it tells what decks to ban
+* `shield_nash()` is a function that finds the Nash equilibrium in mixed strategies for the shield phase - in other words, it tells what decks to shield
+* `run_conquest_app()` provides a GUI for these functions via a Shiny app (currently under development and isn't available). 

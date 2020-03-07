@@ -1,17 +1,22 @@
 ---
-title: "Hearthstone competitive format: Nash equlibrium perspective"
-author: "Samvel Avakian"
-date: 'July 2019'
-output: pdf_document
-urlcolor: blue
-indent: true
-header-includes:
-   - \usepackage{amsmath}
+title: "Specialist competitive format: Nash equlibrium perspective"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Specialist}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+  \usepackage{amsmath}
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
 ```
+
+
+
 # Specialist format
 
 Specialist format is used in official Hearthstone (Blizzard's hit collectible card game) competitions. Here's how it works:
@@ -65,20 +70,4 @@ m_{0,0} = w_{11}m_{1,0}+(1 - w_{11})m_{0,1} =  \\
 =w_{11}\sum_{k=n-1}^{2n-2} {2n-2\choose k}V^{k}(W)(1-V(W))^{2n-2-k}+(1-w_{11})\sum_{k=n}^{2n-2} {2n-2\choose k}V^{k}(W)(1-V(W))^{2n-2-k}
 \end{gathered}
 $$
-
-It is easy to show that $V(W)$ is the solution of a simple linear programming problem that also produces Nash equilibrium strategy profiles (see any game theory textbook, e.g. Owen, 1968):
-$$V(W) = \max_{S} \lambda$$ 
-where
-
-$$S = \begin{cases}
-w_{1,1}x_1 + w_{2,1}x_2 + w_{3,1}x_3 \geq \lambda \\
-w_{1,2}x_1 + w_{2,2}x_2 + w_{3,2}x_3 \geq \lambda \\
-w_{1,3}x_1 + w_{2,3}x_2 + w_{3,3}x_3 \geq \lambda \\ 
-x_1 + x_2 + x_3 = 1 \\
-x_1,x_2,x_3 \geq 0
-\end{cases}$$
-where $x_i$ is the optimal probability of choosing $i$-ry deck for Hero. The intuition here is that if, given Hero's _supposed_ equilibrium strategy, there is an Opponent strategy that generates Hero's winrate lower than the resulting value of the game under this _supposed_ equilibrium, it is beneficial for the Opponent to deviate and switch to that strategy, and thus Hero's strategy isn't equilibrial. 
-
-# Conclusion
-
-In this paper I show that expected match winrate given deck winrates is a lot easier to compute for Specialist format than for formats with variable sets of available decks (e.g. Last Hero Standing, Conquest). An interactive Shiny app for calculating match winrates (and more) is available at [my website](https://naturewillconfess.com/specialist/).
+Hearthstone package offers 2 useful functions - `spec_nash()` that calculates winrates from a winrate matrix based and other arguments and `run_specialist_app()` that provides a GUI for that function via a Shiny app

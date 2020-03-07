@@ -1,0 +1,21 @@
+Package: hearthstone
+Type: Package
+Title: Nash calculators for Hearthstone competitive formats
+Version: 0.1.0
+Authors@R: person("Samvel", "Avakian", email = "naturewillconfess@gmail.com",
+  role = c("aut", "cre"))
+Description: A collection of functions, vignettes and Shiny apps focused on Nash equilibrium in mixed strategies for 5 Hearthstone competitive formats - Conquest, Shield-Phase Conquest, LHS, Strike and Specialist. Note that I'm not affiliated with Blizzard Entertainment, Inc. Hearthstone is a trademark or registered trademark of Blizzard Entertainment, Inc., in the U.S. and/or other countries.
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+Imports:
+    shiny,
+    shinyMatrix,
+    lpSolveAPI
+VignetteBuilder:
+    knitr
+Suggests: 
+    knitr,
+    rmarkdown,
+    testthat (>= 2.1.0)
+RoxygenNote: 7.0.2

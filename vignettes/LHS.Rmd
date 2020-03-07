@@ -1,0 +1,40 @@
+---
+title: "Last Hero Standing: Nash equilibrium in mixed strategies (work in progress)"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Last Hero Standing: Nash equilibrium in mixed strategies}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+  \usepackage{amsmath}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+# Introduction
+
+LHS format is used in official Hearthstone competitions. Here's how it works:
+
+* Both players create a set of $n$ decks
+* Both players ban $m$ decks, if there is a ban phase
+* Players secretly pick one non-banned deck and play a game between these decks
+   + The winner of the game has to continue using the winning deck
+   + The loser of the game can't use the losing deck for the remainder of the match
+* The process repeats until one player has lost with all their non-banned decks
+
+
+
+
+# Pick order
+Let's first look at best-of-three LHS. To win, players have to avoid losing with 2 decks in three games. We will look at everything from the perspective of the first player. Let $W$ be a winrate matrix
+
+$$W = \left( {\begin{array}{*{20}{c}}{{w_{11}}}&{{w_{12}}}\\{{w_{21}}}&{{w_{22}}}\end{array}} \right)$$
+Let $G_0$ be a payoff matrix of a pick order game before round one. Then
+
+$$G_0 = \begin{pmatrix}
+w_{11}(w_{12} + (1-w_{12})w_{22}) + (1-w_{11})w_{21}w_{22} & w_{12}(w_{11} + (1-w_{11})w_{21}) + (1-w_{12})w_{22}w_{21}
+\end{pmatrix}$$
