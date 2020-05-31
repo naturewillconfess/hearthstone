@@ -25,12 +25,10 @@ ban_nash(
 }
 \value{
 A list with following components
-\item{Hero_bans}{Hero bans}
-\item{Opp_bans}{Opponent bans}
-\item{V_hero}{Hero winrate}
-\item{V_opp}{Hero winrate}
+\item{bans}{decks banned BY Hero and Opponent}
+\item{winrate}{Hero and Opponent's winrate}
 \item{stratlist}{Hero's and Opponent's ban options}
-\item{conqs}{list of nash_fun output for each ban combination}
+\item{conqs}{list of nash_fun output for each ban combination - first layer is hero's options, second is opponent's}
 }
 \description{
 Finds Nash equilibrium in mixed strategies and expected winrate for both players in a ban phase of a match (Conquest, Conquest where you have to win with all but one deck, LHS)

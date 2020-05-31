@@ -10,18 +10,15 @@
 #' @param shield number of shields per player
 
 #' @return A list with following components
-#' \item{Hero_shield}{Hero's optimal shielding strategy}
-#' \item{Opp_shield}{Opponent's optimal shielding strategy}
-#' \item{V_hero}{Hero winrate}
-#' \item{V_opp}{Hero winrate}
+#' \item{shields}{Optimal shields FROM Hero's and Opp's bans, so shield_h is a decision by the opponent}
+#' \item{winrate}{Hero and Opp winrates}
 #' \item{stratlist}{Hero's and Opponent's shield options}
-#' \item{conqs}{list of ban_nash output for each shield combination}
+#' \item{conqs}{list of ban_nash output for each shield combination, first layer is hero's shields (HERO's decision to shield from Opp's ban), second is opponent's}
 #'
 #' @examples
 #' shield_nash(W = matrix(runif(16), 4, 4), bans = 1, nash_fun = "conquest_nash_short", shield = 1)
 #' @export
 shield_nash <- function(W, bans, nash_fun = c("conquest_nash", "conquest_nash_short", "LHS_nash"), shield) {
-  nash_fun <- match.arg(nash_fun)
   n <- ncol(W)
   if (shield == 0) stop("0 shields, just run ban_nash with NULL shields instead")
 
@@ -34,25 +31,23 @@ shield_nash <- function(W, bans, nash_fun = c("conquest_nash", "conquest_nash_sh
     for (k in seq_along(shieldcombs)) {
       shield_h <- shieldcombs[[j]]
       shield_o <- shieldcombs[[k]]
-      conq_v <- ban_nash(W, bans, nash_fun, shield_h, shield_o)
-      G[j, k] <- conq_v$V_hero
-      conq[[j]][[k]] <- conq_v
+      conq_v <- ban_nash(W, bans, nash_fun, shield_h = shield_h, shield_o = shield_o)
+      G[k, j] <- unname(conq_v$winrate)[1]
+      conq[[k]][[j]] <- conq_v
     }
   }
   solution <- solve_game(G)
-  V <- solve_game(G)$V
-  S <- solve_game(G)$hero_sol
+  V <- solution$V
+  S <- solution$hero_sol
 
-  V_opp <- 1-V
-  S_opp <- solve_game(G)$opp_sol
+  S_opp <- solution$opp_sol
 
   solutions <- list(
-    Hero_shield = S,
-    Opp_shield = S_opp,
-    V_hero = V,
-    V_opp = V_opp,
+    G = G,
+    shields = list(hero = S, opp = S_opp),
+    winrate = c(hero = V, opp = 1-V),
     stratlist = shieldcombs,
-    conq
+    conqs = conq
   )
   solutions
 }

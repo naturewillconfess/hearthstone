@@ -41,24 +41,18 @@ devtools::install_github("naturewillconfess/hearthstone")
         Conquest shield phase
   - Shiny apps - `strike_run_app()`and `specialist_run_app()`
 
-## What I’m working on now
+## News
 
-  - LHS and Conquest Shiny apps
-  - Uploading all the apps on my website
-  - LHS vignette
-  - Tests
+Version 0.2.0 is here\! Most functions should work now, and basic unit
+tests are in place. Structure of the output can still change - I want to
+make output of higher-level functions a bit more user-friendly.
 
 ## Future plans
 
-  - Tools for meta-analysis
-      - Format-specific line-up composers
-      - Nash equilibrial ladder strategy
-  - CRAN hosting
-
-## Regular disclaimer
-
-This is pretty much untested. Use at your own risk. Read the license.
-Wash your hands. Talk to a therapist.
+  - LHS and Conquest Shiny apps
+  - LHS vignette
+  - Nash equilibrial ladder strategy
+  - Format-specific line-up composers
 
 ## Legal disclaimer
 

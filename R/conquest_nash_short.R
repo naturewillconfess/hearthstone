@@ -52,6 +52,7 @@ conquest_nash_short <- function(W) {
       optP <- (1:n)[!(1:n) %in% won[[1]]]
       optO <- (1:n)[!(1:n) %in% won[[2]]]
       G <- W
+      G[TRUE] <- NA
       ## is alpha_beta_pruning applicable?
       for (j in optP) {
         for (k in optO) {

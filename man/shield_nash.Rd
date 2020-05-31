@@ -22,12 +22,10 @@ shield_nash(
 }
 \value{
 A list with following components
-\item{Hero_shield}{Hero's optimal shielding strategy}
-\item{Opp_shield}{Opponent's optimal shielding strategy}
-\item{V_hero}{Hero winrate}
-\item{V_opp}{Hero winrate}
+\item{shields}{Optimal shields FROM Hero's and Opp's bans, so shield_h is a decision by the opponent}
+\item{winrate}{Hero and Opp winrates}
 \item{stratlist}{Hero's and Opponent's shield options}
-\item{conqs}{list of ban_nash output for each shield combination}
+\item{conqs}{list of ban_nash output for each shield combination, first layer is hero's shields (HERO's decision to shield from Opp's ban), second is opponent's}
 }
 \description{
 Finds Nash equilibrium in mixed strategies and expected winrate for both players in a shield phase of a match (Conquest, Conquest where you have to win with all but one deck, LHS)

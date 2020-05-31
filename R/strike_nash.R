@@ -22,6 +22,7 @@
 #' strike_nash(W = matrix(runif(9), 3, 3))
 #' @export
 strike_nash <- function(W, Hero = 0, Opp = 0, nash_bans = TRUE, nbans = 0, HeroBans = NULL, OppBans = NULL, played = NULL) {
+  if (any(W > 1 | W < 0)) stop("Winrates must be less than one and greater than zero")
   if (!(is.null(HeroBans) & is.null(OppBans))) {
     if (nash_bans) stop("Choose either manual bans or Nash bans")
     if ((is.null(HeroBans) | is.null(OppBans))) stop("Enter both bans") else if (nrow(HeroBans) != nrow(OppBans)) stop("Enter equal number of bans") else if (2 * nrow(HeroBans) > (length(W) - 1)) stop("Too many bans")
@@ -32,10 +33,10 @@ strike_nash <- function(W, Hero = 0, Opp = 0, nash_bans = TRUE, nbans = 0, HeroB
     if (2 * nbans > (length(W) - 1)) stop("Too many bans")
     if (nbans > 0) {
       HB <- which(W <= sort(W)[nbans], arr.ind = T)
-      HeroBans <- HB[1:nbans, ]
+      HeroBans <- HB[1:nbans, , drop = FALSE]
       W2[HeroBans] <- -9999
       OB <- which(W2 >= sort(W2)[length(W2) - nbans + 1], arr.ind = T)
-      OppBans <- OB[1:nbans, ]
+      OppBans <- OB[1:nbans, , drop = FALSE]
     }
   }
 
