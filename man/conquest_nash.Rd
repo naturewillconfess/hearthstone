@@ -10,7 +10,7 @@ conquest_nash(W)
 \item{W}{Winrate matrix (from the perspective of the Hero)}
 }
 \value{
-A list of possible state of the game with following parameters (if applicable)
+A list of possible states of the game with following parameters (if applicable)
 \item{score}{eliminated decks}
 \item{winrate}{Players' winrate}
 \item{nash}{Nash equilibrium in mixed strategies}

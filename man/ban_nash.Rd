@@ -4,35 +4,25 @@
 \alias{ban_nash}
 \title{Optimal bans calculator}
 \usage{
-ban_nash(
-  W,
-  bans,
-  nash_fun = c("conquest_nash", "conquest_nash_short", "LHS_nash"),
-  shield_h = NULL,
-  shield_o = NULL
-)
+ban_nash(W, bans, match_format = c("conquest", "LHS"))
 }
 \arguments{
 \item{W}{Winrate matrix (from the perspective of the Hero)}
 
 \item{bans}{number of bans}
 
-\item{nash_fun}{Type of match}
-
-\item{shield_h}{decks shielded FROM Hero's bans}
-
-\item{shield_o}{decks shielded FROM Opponent's bans}
+\item{match_format}{Type of match}
 }
 \value{
 A list with following components
 \item{bans}{decks banned BY Hero and Opponent}
 \item{winrate}{Hero and Opponent's winrate}
 \item{stratlist}{Hero's and Opponent's ban options}
-\item{conqs}{list of nash_fun output for each ban combination - first layer is hero's options, second is opponent's}
+\item{conqs}{list of match_format output for each ban combination - first layer is hero's options, second is opponent's}
 }
 \description{
 Finds Nash equilibrium in mixed strategies and expected winrate for both players in a ban phase of a match (Conquest, Conquest where you have to win with all but one deck, LHS)
 }
 \examples{
-ban_nash(W = matrix(runif(16), 4, 4), bans = 1, nash_fun = "conquest_nash")
+ban_nash(W = matrix(runif(16), 4, 4), bans = 1, match_format = "conquest")
 }

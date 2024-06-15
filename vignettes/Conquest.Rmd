@@ -171,8 +171,5 @@ One can easily realize this monstrosity doesn't hold - for example, by checking 
 ## hearthstone package and Conquest format
 hearthstone package provides several functions that deal with the Conquest format.
 
-* `conquest_nash()` is a function that finds subgame perfect equilibria by calculating Nash equilibria from the bottom of the extended form game tree up. It uses lpSolve to solve subgames (so it finds a single optimal strategy), and it doesn't use optimization techniques (even lossless ones like alpha-beta pruning).
-* `conquest_nash_short()` is `conquest_nash()`, but for Conquest matches in which players have to win with all but one deck to win.
+* `conquest_nash()` is a function that finds subgame perfect equilibria by calculating Nash equilibria from the bottom of the extended form game tree up. It uses lpSolve to solve subgames (so it finds a single optimal strategy), and it doesn't use optimization techniques (even lossless ones like alpha-beta pruning or memoization).
 * `ban_nash()` is a function that finds the Nash equilibrium in mixed strategies for the ban phase - in other words, it tells what decks to ban
-* `shield_nash()` is a function that finds the Nash equilibrium in mixed strategies for the shield phase - in other words, it tells what decks to shield
-* `run_conquest_app()` provides a GUI for these functions via a Shiny app (currently under development and isn't available). 
