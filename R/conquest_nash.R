@@ -6,7 +6,7 @@
 #'
 #' @param W Winrate matrix (from the perspective of the Hero)
 #'
-#' @return A list of possible state of the game with following parameters (if applicable)
+#' @return A list of possible states of the game with following parameters (if applicable)
 #' \item{score}{eliminated decks}
 #' \item{winrate}{Players' winrate}
 #' \item{nash}{Nash equilibrium in mixed strategies}
@@ -16,13 +16,14 @@
 #' @export
 conquest_nash <- function(W) {
   n <- ncol(W)
-  combs <- unlist(lapply(0:n, function(x) combn(1:n, x, simplify = FALSE)), recursive = FALSE)
-  comblist <- lapply(combs, function(x) lapply(combs, list, x))
+  combs <- unlist(lapply(0:n, function(x) combn(1:n, x, simplify = FALSE)), recursive = FALSE) #all possible combinations of eliminated decks for a single player
+  comblist <- lapply(combs, function(x) lapply(combs, list, x)) 
   comblist <- unlist(comblist, recursive = FALSE)
-  comblist <- comblist[-length(comblist)]
-  ngames <- sapply(comblist, function(x) length(x[[1]]) + length(x[[2]]))
-  comblist <- comblist[order(ngames, decreasing = TRUE)]
+  comblist <- comblist[-length(comblist)] #all possible combinations of eliminated decks for two players - each combination describes a subgame of the conquest match
+  ngames <- sapply(comblist, function(x) length(x[[1]]) + length(x[[2]])) #number of games that have occurred up to this point
+  comblist <- comblist[order(ngames, decreasing = TRUE)] # sort so that we start from the leaves of the game tree rather than the trunk
 
+  #convert the score data structure to a data frame for easier lookup
   comblist <- lapply(comblist, function(x) list(score = x))
   combmat_1 <- sapply(comblist, function(x) {
     nums <- paste0(x$score[[1]], collapse = "")
@@ -35,13 +36,14 @@ conquest_nash <- function(W) {
     nums
   })
   combmat <- data.frame(h = combmat_1, o = combmat_2, stringsAsFactors = FALSE)
+  
   for (i in seq_along(comblist)) {
     won <- comblist[[i]][[1]]
     wonlen <- sapply(won, length)
     if (wonlen[1] == n) {
       V <- 1
       V_opp <- 0
-      comblist[[i]] <- c(score = list(comblist[[i]][[1]]), winrate = list(c(V, V_opp)))
+      comblist[[i]] <- c(score = list(comblist[[i]][[1]]), winrate = list(c(V, V_opp))) #if the player has won with all their decks, their payoff is 1
     } else if (wonlen[2] == n) {
       V <- 0
       V_opp <- 1
@@ -49,19 +51,26 @@ conquest_nash <- function(W) {
     } else if (wonlen[1] == n - 1) {
       V <- 1 - prod(1 - W[!(1:n) %in% won[[1]], !(1:n) %in% won[[2]]])
       V_opp <- 1 - V
-      comblist[[i]] <- c(score = list(comblist[[i]][[1]]), winrate = list(c(V, V_opp)))
+      comblist[[i]] <- c(score = list(comblist[[i]][[1]]), winrate = list(c(V, V_opp))) #if the player has won with all but 1 of their decks, their payoff is 1 - prob of losing all their remaining matches
     } else if (wonlen[2] == n - 1) {
       V <- prod(W[!(1:n) %in% won[[1]], !(1:n) %in% won[[2]]])
       V_opp <- 1 - V
       comblist[[i]] <- c(score = list(comblist[[i]][[1]]), winrate = list(c(V, V_opp)))
-    } else {
-      # Players options
+    } else { 
+      #if the game hasn't progressed to one of the abovementioned points, payoffs might depend on deck selection for the next game in the match
+      #so the payoff of the conquest subgame with a set combination of eliminated deck is the payoff of the deck selection 'game'
+      #the payoff for the deck selection game is a sum of payoffs in case of a win and a loss weighted by probabilities of winning and losing
+      #since we're moving up the subgame tree, we always know the payoffs for winning and losing with each combination of selected decks
+      
+      # Players options for deck selection in our subgame
       optP <- (1:n)[!(1:n) %in% won[[1]]]
       optO <- (1:n)[!(1:n) %in% won[[2]]]
       G <- W
-      ## is alpha_beta_pruning applicable?
+      #calculate the payoff matrix G for the deck selection step
+      ## is alpha_beta_pruning or other optimizations applicable? need some research
       for (j in optP) {
         for (k in optO) {
+          
           winner_1 <- c(won[[1]], j)
           winner_1 <- paste0(winner_1[order(winner_1)], collapse = "")
           winner_2 <- paste0(won[[2]], collapse = "")
@@ -85,7 +94,7 @@ conquest_nash <- function(W) {
 
       V_opp <- 1-V
       S_opp <- solve_game(G)$opp_sol
-
+      
       comblist[[i]] <- c(comblist[[i]], winrate = list(c(V, V_opp)), nash = list(list(S, S_opp)), game = list(G))
     }
   }

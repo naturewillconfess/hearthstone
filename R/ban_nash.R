@@ -19,7 +19,7 @@
 #' @examples
 #' ban_nash(W = matrix(runif(16), 4, 4), bans = 1, nash_fun = "conquest_nash")
 #' @export
-ban_nash <- function(W, bans, nash_fun = c("conquest_nash", "conquest_nash_short", "LHS_nash"), shield_h = NULL, shield_o = NULL) {
+  ban_nash <- function(W, bans, nash_fun = c("conquest_nash", "conquest_nash_short", "LHS_nash"), shield_h = NULL, shield_o = NULL) {
   nash_fun <- match.arg(nash_fun)
   n <- ncol(W)
   s_len_h <- length(shield_h)
