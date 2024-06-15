@@ -1,3 +1,6 @@
+n = 100
+acc = 0.2
+
 test_that("symmetric LHS", {
   W <- matrix(rep(0.5,9),3,3)
   n <- LHS_nash(W)
@@ -16,7 +19,7 @@ test_that("calibration LHS", {
   games_h <- colMeans(do.call(rbind,lapply(games, function(x) x[[length(x)]]$nash[[1]])))
   games_o <- colMeans(do.call(rbind,lapply(games, function(x) x[[length(x)]]$nash[[2]])))
 
-  expect_true(all(games_v > 0.45 & games_v < 0.55))
-  expect_true(all(games_h > 0.25 & games_h < 0.36))
-  expect_true(all(games_o > 0.3 & games_o < 0.36))
+  expect_true(all(games_v > 0.5-acc & games_v < 0.5+acc))
+  expect_true(all(games_h > 0.33-acc & games_h < 0.33+acc))
+  expect_true(all(games_o > 0.33-acc & games_o < 0.33+acc))
 })

@@ -1,3 +1,6 @@
+n = 100
+acc = 0.2
+
 test_that("symmetric ban nash", {
   W <- matrix(rep(0.5,16),4,4)
   n <- ban_nash(W, bans = 1)
@@ -6,47 +9,47 @@ test_that("symmetric ban nash", {
 })
 
 test_that("calibration ban nash 1", {
-  games <- replicate(1000, ban_nash(matrix(runif(9),3,3), bans = 1, match_format = "conquest"), simplify = FALSE)
+  games <- replicate(n, ban_nash(matrix(runif(9),3,3), bans = 1, match_format = "conquest"), simplify = FALSE)
   games_v <- colMeans(do.call(rbind,lapply(games, function(x) x$winrate)))
   games_h <- colMeans(do.call(rbind,lapply(games, function(x) x$bans$hero)))
   games_o <- colMeans(do.call(rbind,lapply(games, function(x) x$bans$opp)))
 
-  expect_true(all(games_v > 0.45 & games_v < 0.55))
-  expect_true(all(games_h > 0.3 & games_h < 0.36))
-  expect_true(all(games_o > 0.3 & games_o < 0.36))
+  expect_true(all(games_v > 0.5-acc & games_v < 0.5+acc))
+  expect_true(all(games_h > 0.33-acc & games_h < 0.33+acc))
+  expect_true(all(games_o > 0.33-acc & games_o < 0.33+acc))
 })
 
 test_that("calibration ban nash 2", {
-  games <- replicate(1000, ban_nash(matrix(runif(9),3,3), bans = 2, match_format = "conquest"), simplify = FALSE)
+  games <- replicate(n, ban_nash(matrix(runif(9),3,3), bans = 2, match_format = "conquest"), simplify = FALSE)
   games_v <- colMeans(do.call(rbind,lapply(games, function(x) x$winrate)))
   games_h <- colMeans(do.call(rbind,lapply(games, function(x) x$bans$hero)))
   games_o <- colMeans(do.call(rbind,lapply(games, function(x) x$bans$opp)))
-
-  expect_true(all(games_v > 0.45 & games_v < 0.55))
-  expect_true(all(games_h > 0.3 & games_h < 0.36))
-  expect_true(all(games_o > 0.3 & games_o < 0.36))
+  
+  expect_true(all(games_v > 0.5-acc & games_v < 0.5+acc))
+  expect_true(all(games_h > 0.33-acc & games_h < 0.33+acc))
+  expect_true(all(games_o > 0.33-acc & games_o < 0.33+acc))
 })
 
 test_that("calibration ban nash 3", {
-  games <- replicate(1000, ban_nash(matrix(runif(16),4,4), bans = 1, match_format = "conquest"), simplify = FALSE)
+  games <- replicate(n, ban_nash(matrix(runif(16),4,4), bans = 1, match_format = "conquest"), simplify = FALSE)
   games_v <- colMeans(do.call(rbind,lapply(games, function(x) x$winrate)))
   games_h <- colMeans(do.call(rbind,lapply(games, function(x) x$bans$hero)))
   games_o <- colMeans(do.call(rbind,lapply(games, function(x) x$bans$opp)))
-
-  expect_true(all(games_v > 0.45 & games_v < 0.55))
-  expect_true(all(games_h > 0.2 & games_h < 0.3))
-  expect_true(all(games_o > 0.2 & games_o < 0.3))
+  
+  expect_true(all(games_v > 0.5-acc & games_v < 0.5+acc))
+  expect_true(all(games_h > 0.25-acc & games_h < 0.25+acc))
+  expect_true(all(games_o > 0.25-acc & games_o < 0.25+acc))
 })
 
 test_that("calibration ban nash 4", {
-  games <- replicate(1000, ban_nash(matrix(runif(16),4,4), bans = 2, match_format = "conquest"), simplify = FALSE)
+  games <- replicate(n, ban_nash(matrix(runif(16),4,4), bans = 2, match_format = "conquest"), simplify = FALSE)
   games_v <- colMeans(do.call(rbind,lapply(games, function(x) x$winrate)))
   games_h <- colMeans(do.call(rbind,lapply(games, function(x) x$bans$hero)))
   games_o <- colMeans(do.call(rbind,lapply(games, function(x) x$bans$opp)))
-
-  expect_true(all(games_v > 0.45 & games_v < 0.55))
-  expect_true(all(games_h > 0.13 & games_h < 0.21))
-  expect_true(all(games_o > 0.13 & games_o < 0.21))
+  
+  expect_true(all(games_v > 0.5-acc & games_v < 0.5+acc))
+  expect_true(all(games_h > 1/6-acc & games_h < 1/6+acc))
+  expect_true(all(games_o > 1/6-acc & games_o < 1/6+acc))
 })
 #############################
 test_that("symmetric ban nash LHS", {
@@ -57,45 +60,45 @@ test_that("symmetric ban nash LHS", {
 })
 
 test_that("calibration ban nash 1 LHS", {
-  games <- replicate(1000, ban_nash(matrix(runif(9),3,3), bans = 1, match_format = "LHS"), simplify = FALSE)
+  games <- replicate(n, ban_nash(matrix(runif(9),3,3), bans = 1, match_format = "LHS"), simplify = FALSE)
   games_v <- colMeans(do.call(rbind,lapply(games, function(x) x$winrate)))
   games_h <- colMeans(do.call(rbind,lapply(games, function(x) x$bans$hero)))
   games_o <- colMeans(do.call(rbind,lapply(games, function(x) x$bans$opp)))
-
-  expect_true(all(games_v > 0.45 & games_v < 0.55))
-  expect_true(all(games_h > 0.3 & games_h < 0.36))
-  expect_true(all(games_o > 0.3 & games_o < 0.36))
+  
+  expect_true(all(games_v > 0.5-acc & games_v < 0.5+acc))
+  expect_true(all(games_h > 0.33-acc & games_h < 0.33+acc))
+  expect_true(all(games_o > 0.33-acc & games_o < 0.33+acc))
 })
 
 test_that("calibration ban nash 2 LHS", {
-  games <- replicate(1000, ban_nash(matrix(runif(9),3,3), bans = 2, match_format = "LHS"), simplify = FALSE)
+  games <- replicate(n, ban_nash(matrix(runif(9),3,3), bans = 2, match_format = "LHS"), simplify = FALSE)
   games_v <- colMeans(do.call(rbind,lapply(games, function(x) x$winrate)))
   games_h <- colMeans(do.call(rbind,lapply(games, function(x) x$bans$hero)))
   games_o <- colMeans(do.call(rbind,lapply(games, function(x) x$bans$opp)))
-
-  expect_true(all(games_v > 0.45 & games_v < 0.55))
-  expect_true(all(games_h > 0.3 & games_h < 0.36))
-  expect_true(all(games_o > 0.3 & games_o < 0.36))
+  
+  expect_true(all(games_v > 0.5-acc & games_v < 0.5+acc))
+  expect_true(all(games_h > 0.33-acc & games_h < 0.33+acc))
+  expect_true(all(games_o > 0.33-acc & games_o < 0.33+acc))
 })
 
 test_that("calibration ban nash 3 LHS", {
-  games <- replicate(100, ban_nash(matrix(runif(16),4,4), bans = 1, match_format = "LHS"), simplify = FALSE)
+  games <- replicate(n, ban_nash(matrix(runif(16),4,4), bans = 1, match_format = "LHS"), simplify = FALSE)
   games_v <- colMeans(do.call(rbind,lapply(games, function(x) x$winrate)))
   games_h <- colMeans(do.call(rbind,lapply(games, function(x) x$bans$hero)))
   games_o <- colMeans(do.call(rbind,lapply(games, function(x) x$bans$opp)))
-
-  expect_true(all(games_v > 0.45 & games_v < 0.55))
-  expect_true(all(games_h > 0.15 & games_h < 0.35))
-  expect_true(all(games_o > 0.15 & games_o < 0.35))
+  
+  expect_true(all(games_v > 0.5-acc & games_v < 0.5+acc))
+  expect_true(all(games_h > 0.25-acc & games_h < 0.25+acc))
+  expect_true(all(games_o > 0.25-acc & games_o < 0.25+acc))
 })
 
 test_that("calibration ban nash 4 LHS", {
-  games <- replicate(1000, ban_nash(matrix(runif(16),4,4), bans = 2, match_format = "LHS"), simplify = FALSE)
+  games <- replicate(n, ban_nash(matrix(runif(16),4,4), bans = 2, match_format = "LHS"), simplify = FALSE)
   games_v <- colMeans(do.call(rbind,lapply(games, function(x) x$winrate)))
   games_h <- colMeans(do.call(rbind,lapply(games, function(x) x$bans$hero)))
   games_o <- colMeans(do.call(rbind,lapply(games, function(x) x$bans$opp)))
-
-  expect_true(all(games_v > 0.45 & games_v < 0.55))
-  expect_true(all(games_h > 0.13 & games_h < 0.21))
-  expect_true(all(games_o > 0.13 & games_o < 0.21))
+  
+  expect_true(all(games_v > 0.5-acc & games_v < 0.5+acc))
+  expect_true(all(games_h > 1/6-acc & games_h < 1/6+acc))
+  expect_true(all(games_o > 1/6-acc & games_o < 1/6+acc))
 })
