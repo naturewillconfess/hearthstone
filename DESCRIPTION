@@ -5,7 +5,7 @@ Version: 0.3.0
 Authors@R: person("Samvel", "Avakian", email = "naturewillconfess@gmail.com",
   role = c("aut", "cre"))
 Description: A collection of functions and vignettes focused on Nash equilibrium in mixed strategies for 2 Hearthstone competitive formats - Conquest and LHS. Note that I'm not affiliated with Blizzard Entertainment, Inc. Hearthstone is a trademark or registered trademark of Blizzard Entertainment, Inc., in the U.S. and/or other countries.
-License: MIT + file LICENSE
+License: MIT
 Encoding: UTF-8
 LazyData: true
 Imports:
