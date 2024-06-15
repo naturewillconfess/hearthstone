@@ -34,7 +34,7 @@ devtools::install_github("naturewillconfess/hearthstone")
 
 * [Vignette](https://github.com/naturewillconfess/hearthstone/tree/master/vignettes) on Conquest. Check it out!
 * R functions
-    + `conquest_nash()` and `conquest_nash_short()` for determining Nash equilibrial strategy and winrates in Conquest
+    + `conquest_nash()` and for determining Nash equilibrial strategy and winrates in Conquest
     + `LHS_nash()` for determining Nash equilibrial strategy and winrates in LHS
     + `ban_nash()` for determining Nash equilibrial bans in Conquest ban phase
 
