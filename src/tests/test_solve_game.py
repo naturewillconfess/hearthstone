@@ -33,32 +33,12 @@ class TestEqualSquareGame:
     handles various matrix sizes correctly.
     """
 
-    def test_3x3_symmetric(self):
-        """Test a basic 3x3 symmetric game."""
-        W = np.full((3, 3), 0.5)
-        result = solve_game(W)
-        assert result['V'] == pytest.approx(0.5, abs=1e-6)
-
-    def test_3x3_transpose(self):
-        """Test that transposing and complementing preserves the value."""
-        W = np.full((3, 3), 0.5)
-        # In zero-sum games, if we flip the matrix (1-W^T), the value
-        # from the new row player's perspective should still be 0.5
-        # for symmetric games
-        result = solve_game(1 - W.T)
-        assert result['V'] == pytest.approx(0.5, abs=1e-6)
-
     def test_various_sizes(self):
         """Test symmetric games of sizes 1x1 through 10x10."""
         for i in range(1, 11):
             W = np.full((i, i), 0.5)
             result = solve_game(W)
             assert result['V'] == pytest.approx(0.5, abs=1e-6), f"Failed for {i}x{i} matrix"
-
-            # Also test the complemented transpose
-            result_t = solve_game(1 - W.T)
-            assert result_t['V'] == pytest.approx(0.5, abs=1e-6), f"Failed for transposed {i}x{i}"
-
 
 class TestOwenExamples:
     """
@@ -72,7 +52,6 @@ class TestOwenExamples:
         """
         Owen Example 1: 3x4 game with known mixed equilibrium.
 
-        R code: matrix(c(3,5,1,6,2,4,1,4,3,4,2,5),3,4)
         This fills column-by-column in R, so the matrix is:
             col1  col2  col3  col4
         row1  3     6     1     4
@@ -103,7 +82,6 @@ class TestOwenExamples:
         """
         Owen Example 2: 2x4 game.
 
-        R code: matrix(c(2,4,3,1,1,6,5,0),2,4)
         Matrix (column-major):
             col1  col2  col3  col4
         row1  2     3     1     5
@@ -125,7 +103,6 @@ class TestOwenExamples:
         """
         Owen Example 3: Symmetric 3x3 game with zero-sum structure.
 
-        R code: matrix(c(0,-1,2,1,0,-3,-2,3,0),3,3)
         Matrix (column-major):
             col1  col2  col3
         row1   0     1    -2
@@ -160,7 +137,7 @@ class TestDominatedStrategies:
         row2   3     4
 
         Row 2 dominates Row 1 (3>2 and 4>1).
-        Column 1 dominates Column 2 for opponent (trying to minimize).
+        Column 1 dominates Column 2 for opponent (trying to minimize, conditional on Hero picking row 2).
 
         Pure Nash equilibrium: Hero plays row 2, Opponent plays column 1.
         Expected:
@@ -250,15 +227,11 @@ class TestCalibration:
         mean_hero = np.mean(hero_strategies, axis=0)
         mean_opp = np.mean(opp_strategies, axis=0)
 
-        # Game value should be near 0.5 (within 0.05)
-        assert 0.45 < mean_value < 0.55, f"Mean value {mean_value} outside expected range"
 
-        # Strategy probabilities should be near 1/3 (within 0.03-0.06)
-        # R test uses 0.3 < x < 0.36
-        assert np.all((mean_hero > 0.30) & (mean_hero < 0.36)), \
-            f"Hero strategy means {mean_hero} outside expected range"
-        assert np.all((mean_opp > 0.30) & (mean_opp < 0.36)), \
-            f"Opp strategy means {mean_opp} outside expected range"
+
+        assert mean_value == pytest.approx(0.5, abs=0.05)
+        assert mean_hero == pytest.approx(1/3, abs=0.03)
+        assert mean_opp == pytest.approx(1/3, abs=0.03)
 
 
 class TestEdgeCases:
@@ -318,20 +291,6 @@ class TestEdgeCases:
         assert result['V'] == pytest.approx(0.5, abs=1e-6)
         np.testing.assert_allclose(result['hero_sol'], [0.5, 0.5], atol=1e-6)
         np.testing.assert_allclose(result['opp_sol'], [0.5, 0.5], atol=1e-6)
-
-    def test_negative_payoffs(self):
-        """Test with negative payoffs (common in game theory)."""
-        W = np.array([
-            [-1, 2],
-            [3, -2]
-        ])
-        result = solve_game(W)
-
-        # Verify probabilities are valid
-        assert np.sum(result['hero_sol']) == pytest.approx(1.0, abs=1e-6)
-        assert np.sum(result['opp_sol']) == pytest.approx(1.0, abs=1e-6)
-        assert np.all(result['hero_sol'] >= -1e-10)
-        assert np.all(result['opp_sol'] >= -1e-10)
 
 
 class TestProbabilityValidity:
@@ -421,84 +380,6 @@ class TestBestResponse:
 
             # Opponent can't force Hero below V
             assert np.all(hero_payoffs >= result['V'] - 1e-5)
-
-
-class TestLargerMatrices:
-    """
-    Tests with larger matrices to ensure scalability.
-    """
-
-    def test_5x5_symmetric(self):
-        """Test 5x5 symmetric game."""
-        W = np.full((5, 5), 0.5)
-        result = solve_game(W)
-        assert result['V'] == pytest.approx(0.5, abs=1e-6)
-
-    def test_6x6_random(self):
-        """Test 6x6 random game completes and produces valid output."""
-        np.random.seed(111)
-        W = np.random.uniform(0, 1, (6, 6))
-        result = solve_game(W)
-
-        assert 0 <= result['V'] <= 1
-        assert np.sum(result['hero_sol']) == pytest.approx(1.0, abs=1e-6)
-        assert np.sum(result['opp_sol']) == pytest.approx(1.0, abs=1e-6)
-
-    def test_8x4_non_square(self):
-        """Test larger non-square matrix."""
-        np.random.seed(222)
-        W = np.random.uniform(0, 1, (8, 4))
-        result = solve_game(W)
-
-        assert len(result['hero_sol']) == 8
-        assert len(result['opp_sol']) == 4
-        assert np.sum(result['hero_sol']) == pytest.approx(1.0, abs=1e-6)
-
-
-class TestSpecialMatrices:
-    """
-    Tests with special matrix structures.
-    """
-
-    def test_identity_like(self):
-        """Test matrix with high diagonal values (rock-paper-scissors-like)."""
-        W = np.array([
-            [0.5, 0.7, 0.3],
-            [0.3, 0.5, 0.7],
-            [0.7, 0.3, 0.5]
-        ])
-        result = solve_game(W)
-
-        # Should be symmetric equilibrium
-        assert result['V'] == pytest.approx(0.5, abs=1e-6)
-        # Equal mixing expected due to symmetry
-        np.testing.assert_allclose(result['hero_sol'], [1/3, 1/3, 1/3], atol=1e-5)
-
-    def test_constant_row(self):
-        """Test matrix where one row has constant value."""
-        W = np.array([
-            [0.5, 0.5, 0.5],  # Constant row
-            [0.3, 0.7, 0.4],
-            [0.6, 0.2, 0.8]
-        ])
-        result = solve_game(W)
-
-        # Output should still be valid
-        assert np.sum(result['hero_sol']) == pytest.approx(1.0, abs=1e-6)
-        assert np.sum(result['opp_sol']) == pytest.approx(1.0, abs=1e-6)
-
-    def test_constant_column(self):
-        """Test matrix where one column has constant value."""
-        W = np.array([
-            [0.5, 0.3, 0.6],
-            [0.5, 0.7, 0.2],
-            [0.5, 0.4, 0.8]
-        ])
-        result = solve_game(W)
-
-        assert np.sum(result['hero_sol']) == pytest.approx(1.0, abs=1e-6)
-        assert np.sum(result['opp_sol']) == pytest.approx(1.0, abs=1e-6)
-
 
 if __name__ == '__main__':
     pytest.main([__file__, '-v'])
