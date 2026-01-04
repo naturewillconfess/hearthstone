@@ -1,14 +1,14 @@
 #!/usr/bin/env python
-"""Setup script for hearthstone-nash package."""
+"""Setup script for hearthstone package."""
 from setuptools import setup, find_packages
 
 setup(
-    name="hearthstone-nash",
+    name="hearthstone",
     version="0.1.0",
-    description="Nash equilibrium calculator for Hearthstone tournament formats",
+    description="Nash equilibrium calculator for Hearthstone tournament formats and Ladder",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
-    author="Hearthstone Nash Contributors",
+    author="Sam Avakian",
     license="MIT",
     python_requires=">=3.8",
     packages=find_packages(),

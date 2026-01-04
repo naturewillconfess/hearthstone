@@ -1,119 +1,135 @@
+# hearthstone
 
-<!-- README.md is generated from README.Rmd. Please edit that file -->
+A Python library for computing Nash equilibria in Hearthstone tournament formats and Ladder.
 
-# hearthstone: tools for competitive HearthstoneⓇ players
+This package calculates optimal mixed strategies for deck selection in competitive Hearthstone tournaments, supporting both **Conquest** and **Last Hero Standing (LHS)** formats, with optional ban phases, as well as Ladder.
 
-<!-- badges: start -->
+## Installation
 
-[![R-CMD-check](https://github.com/naturewillconfess/hearthstone/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/naturewillconfess/hearthstone/actions/workflows/R-CMD-check.yaml)
-<!-- badges: end -->
+TBA
 
-> **⚠️ DEPRECATION NOTICE**
->
-> The R version of this package is **deprecated** and no longer actively maintained.
-> Please use the Python version instead, which offers the same functionality with
-> better performance and modern tooling.
+## Quick Start
 
-## Python Version (Recommended)
+TBA
 
-The recommended way to use this package is via Python:
+## Tournament Formats
 
-### Installation
+### Conquest Format
 
-```bash
-cd python
-pip install .
-```
-
-Or install in development mode:
-
-```bash
-cd python
-pip install -e .
-```
-
-### Quick Start
+In Conquest, each player brings n decks. The **winner's** deck is eliminated after each game. First player to win with all their decks wins the match.
 
 ```python
+from hearthstone import conquest_nash
 import numpy as np
-from hearthstone import conquest_nash, lhs_nash, ban_nash
 
-# Create a winrate matrix
+# 3-deck Conquest (Best of 5)
 W = np.array([
     [0.55, 0.45, 0.60],
     [0.50, 0.50, 0.50],
     [0.40, 0.55, 0.45],
 ])
 
-# Conquest format
 result = conquest_nash(W)
-print(f"Match winrate: {result[-1]['winrate'][0]:.2%}")
+initial = result[-1]
 
-# Last Hero Standing format
+print(f"Your match win probability: {initial['winrate'][0]:.2%}")
+print(f"Optimal deck probabilities: {initial['nash'][0]}")
+print(f"Opponent's optimal response: {initial['nash'][1]}")
+```
+
+### Last Hero Standing (LHS) Format
+
+In LHS, the **loser's** deck is eliminated, and the winner must keep playing the same deck until it loses.
+
+```python
+from hearthstone import lhs_nash
+import numpy as np
+
+W = np.array([
+    [0.55, 0.45, 0.60],
+    [0.50, 0.50, 0.50],
+    [0.40, 0.55, 0.45],
+])
+
 result = lhs_nash(W)
 
-# With ban phase (4 decks, 1 ban)
-W4 = np.random.uniform(0.4, 0.6, (4, 4))
-result = ban_nash(W4, bans=1, match_format='conquest')
+# Find the initial state (no losses, no forced plays)
+initial = [r for r in result
+           if r['score'] == ((), ())
+           and r.get('havetoplay_hero') is None
+           and r.get('havetoplay_opp') is None][-1]
+
+print(f"Your match win probability: {initial['winrate'][0]:.2%}")
 ```
 
-See `python/README.md` for complete documentation.
+### Ban Phase
 
----
+Many tournaments include a ban phase where each player bans one or more of the opponent's decks before the match begins.
 
-## R Version (Deprecated)
+```python
+from hearthstone import ban_nash
+import numpy as np
 
-> **Warning**: The R version is deprecated. All functions will emit deprecation
-> warnings when called. Please migrate to the Python version.
+# 4 decks, 1 ban each
+W = np.array([
+    [0.55, 0.45, 0.60, 0.50],
+    [0.50, 0.50, 0.50, 0.55],
+    [0.40, 0.55, 0.45, 0.60],
+    [0.45, 0.50, 0.55, 0.50],
+])
 
-hearthstone package is designed to help competitive Hearthstone players
-to make optimal decisions when playing in tournaments. In particular, it
-offers tools (R functions, vignettes) for finding subgame perfect Nash
-equilibria in mixed strategies for Conquest and Last Hero Standing.
+# Conquest with 1 ban
+result = ban_nash(W, bans=1, match_format='conquest')
 
-### Installation (R)
+print(f"Match winrate after optimal bans: {result['winrate'][0]:.2%}")
+print(f"Your optimal ban probabilities: {result['bans']['hero']}")
+print(f"Ban options: {result['stratlist']['hero']}")
 
-You can install the latest version of hearthstone with:
-
-``` r
-install.packages("devtools")
-devtools::install_github("naturewillconfess/hearthstone")
+# LHS with 1 ban
+result_lhs = ban_nash(W, bans=1, match_format='lhs')
+print(f"LHS match winrate: {result_lhs['winrate'][0]:.2%}")
 ```
 
-### What's included in this pre-alpha version
 
-- [Vignette](https://github.com/naturewillconfess/hearthstone/tree/master/vignettes)
-  on Conquest. Check it out!
-- R functions (all deprecated - use Python equivalents instead)
-  - `conquest_nash()` → `from hearthstone import conquest_nash`
-  - `LHS_nash()` → `from hearthstone import lhs_nash`
-  - `ban_nash()` → `from hearthstone import ban_nash`
-  - `solve_game()` → `from hearthstone import solve_game`
+## Practical Example: Tournament Preparation
 
-### Migration Guide
+```python
+import numpy as np
+from hearthstone import ban_nash
 
-| R Function | Python Equivalent |
-|------------|-------------------|
-| `conquest_nash(W)` | `conquest_nash(W)` |
-| `LHS_nash(W)` | `lhs_nash(W)` |
-| `ban_nash(W, bans, "conquest")` | `ban_nash(W, bans, match_format='conquest')` |
-| `ban_nash(W, bans, "LHS")` | `ban_nash(W, bans, match_format='lhs')` |
-| `solve_game(W)` | `solve_game(W)` |
+# Your estimated winrates against a specific opponent
+# Rows: Your decks (Aggro, Midrange, Control, Combo)
+# Cols: Their decks (Aggro, Midrange, Control, Combo)
+W = np.array([
+    [0.50, 0.55, 0.40, 0.60],  # Your Aggro
+    [0.45, 0.50, 0.55, 0.45],  # Your Midrange
+    [0.60, 0.45, 0.50, 0.40],  # Your Control
+    [0.40, 0.55, 0.60, 0.50],  # Your Combo
+])
 
-Key differences:
-- Python uses 0-based indexing (deck indices start at 0, not 1)
-- Python function `lhs_nash` uses lowercase (not `LHS_nash`)
-- Python `ban_nash` uses `match_format='lhs'` lowercase (not `"LHS"`)
+deck_names = ['Aggro', 'Midrange', 'Control', 'Combo']
 
-## News
+# Analyze with 1 ban (Conquest format)
+result = ban_nash(W, bans=1, match_format='conquest')
 
-Version 0.4.0: R package deprecated in favor of Python implementation.
+print(f"Expected match winrate: {result['winrate'][0]:.1%}\n")
 
-Version 0.3.0: Removed everything related to deprecated formats like Strike,
-Specialist and Conquest with Shields.
+print("Your optimal ban strategy:")
+for i, (ban_combo, prob) in enumerate(zip(result['stratlist']['hero'], result['bans']['hero'])):
+    if prob > 0.01:
+        banned_deck = deck_names[ban_combo[0]]
+        print(f"  Ban their {banned_deck}: {prob:.1%}")
 
-## Legal disclaimer
+print("\nTheir likely ban against you:")
+for i, (ban_combo, prob) in enumerate(zip(result['stratlist']['opp'], result['bans']['opp'])):
+    if prob > 0.01:
+        banned_deck = deck_names[ban_combo[0]]
+        print(f"  Ban your {banned_deck}: {prob:.1%}")
+```
 
-Hearthstone is a trademark or registered trademark of Blizzard
-Entertainment, Inc., in the U.S. and/or other countries. I'm not
-affiliated with Blizzard Entertainment, Inc. in any way.
+## License
+
+MIT License
+
+## Disclaimer
+Hearthstone is a trademark or registered trademark of Blizzard Entertainment, Inc., in the U.S. and/or other countries. I’m not affiliated with Blizzard Entertainment, Inc. in any way.
