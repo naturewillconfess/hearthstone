@@ -1,5 +1,11 @@
 #' Optimal bans calculator
 #'
+#' @description
+#' `r lifecycle::badge("deprecated")`
+#'
+#' This function is deprecated. Please use the Python version instead:
+#' `pip install hearthstone-nash` and `from hearthstone import ban_nash`
+#'
 #' Finds Nash equilibrium in mixed strategies and expected winrate for both players in a ban phase of a match (Conquest, Conquest where you have to win with all but one deck, LHS)
 #' @importFrom stats na.omit
 #' @importFrom utils combn
@@ -17,7 +23,12 @@
 #' @examples
 #' ban_nash(W = matrix(runif(16), 4, 4), bans = 1, match_format = "conquest")
 #' @export
-  ban_nash <- function(W, bans, match_format = c("conquest", "LHS")) {
+ban_nash <- function(W, bans, match_format = c("conquest", "LHS")) {
+  .Deprecated(
+    new = "hearthstone-nash Python package",
+    package = "hearthstone",
+    msg = "ban_nash() is deprecated. Please use the Python version: pip install hearthstone-nash"
+  )
   match_format <- match.arg(match_format)
   if (!match_format %in% c('conquest', 'LHS')) stop('Unknown format')
   n <- ncol(W)

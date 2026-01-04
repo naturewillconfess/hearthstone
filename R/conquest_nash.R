@@ -1,5 +1,11 @@
 #' Conquest Nash calculator
 #'
+#' @description
+#' `r lifecycle::badge("deprecated")`
+#'
+#' This function is deprecated. Please use the Python version instead:
+#' `pip install hearthstone-nash` and `from hearthstone import conquest_nash`
+#'
 #' Finds Nash equilibrium in mixed strategies and expected winrate for both players in a Conquest match
 #' @importFrom stats na.omit
 #' @importFrom utils combn
@@ -15,6 +21,11 @@
 #' conquest_nash(W = matrix(runif(9), 3, 3))
 #' @export
 conquest_nash <- function(W) {
+  .Deprecated(
+    new = "hearthstone-nash Python package",
+    package = "hearthstone",
+    msg = "conquest_nash() is deprecated. Please use the Python version: pip install hearthstone-nash"
+  )
   n <- ncol(W)
   combs <- unlist(lapply(0:n, function(x) combn(1:n, x, simplify = FALSE)), recursive = FALSE) #all possible combinations of eliminated decks for a single player
   comblist <- lapply(combs, function(x) lapply(combs, list, x)) 

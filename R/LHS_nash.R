@@ -1,5 +1,11 @@
 #' LHS Nash calculator
 #'
+#' @description
+#' `r lifecycle::badge("deprecated")`
+#'
+#' This function is deprecated. Please use the Python version instead:
+#' `pip install hearthstone-nash` and `from hearthstone import lhs_nash`
+#'
 #' Finds Nash equilibrium in mixed strategies and expected winrate for both players in an LHS match
 #' @importFrom stats na.omit
 #' @importFrom utils combn
@@ -17,6 +23,11 @@
 #' LHS_nash(W = matrix(runif(9), 3, 3))
 #' @export
 LHS_nash <- function(W) {
+  .Deprecated(
+    new = "hearthstone-nash Python package",
+    package = "hearthstone",
+    msg = "LHS_nash() is deprecated. Please use the Python version: pip install hearthstone-nash"
+  )
   n <- nrow(W)
   W1 <- W
   combs <- unlist(lapply(0:n, function(x) combn(1:n, x, simplify = FALSE)), recursive = FALSE)

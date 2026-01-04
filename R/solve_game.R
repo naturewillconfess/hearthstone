@@ -1,5 +1,11 @@
 #' zero-sum game solver based on lpSolve
 #'
+#' @description
+#' `r lifecycle::badge("deprecated")`
+#'
+#' This function is deprecated. Please use the Python version instead:
+#' `pip install hearthstone-nash` and `from hearthstone import solve_game`
+#'
 #' Finds Nash equilibrium in mixed strategies and expected winrate for both players in a zero-sum game specified by a payoff matrix
 #'
 #' @import lpSolveAPI
@@ -13,6 +19,11 @@
 #' @export
 #'
 solve_game <- function(W) {
+  .Deprecated(
+    new = "hearthstone-nash Python package",
+    package = "hearthstone",
+    msg = "solve_game() is deprecated. Please use the Python version: pip install hearthstone-nash"
+  )
   m <- ncol(W)
   n <- nrow(W)+1
   const.mat = rbind(cbind(t(W), rep(-1, m)), c(rep(1, n-1), 0), cbind(diag(n-1), rep(0, n-1)))
