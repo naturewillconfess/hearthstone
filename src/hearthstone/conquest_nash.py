@@ -99,14 +99,6 @@ def conquest_nash(W: np.ndarray) -> list:
     >>> result = conquest_nash(W)
     >>> print(f"Optimal deck selection: {result[-1]['nash'][0]}")
 
-    Notes
-    -----
-    The algorithm complexity is O(3^n * n^3):
-    - There are 3^n possible game states (each deck can be: not played,
-      won by hero, or won by opponent)
-    - Each non-terminal state requires solving an LP of size up to n x n
-
-    For typical Hearthstone tournaments (n=3 or n=4), this is very fast.
     """
     # Convert input to numpy array and validate
     W = np.asarray(W, dtype=float)
@@ -194,6 +186,10 @@ def conquest_nash(W: np.ndarray) -> list:
             'score': (tuple(sorted(hero_won)), tuple(sorted(opp_won)))
         }
 
+        # Remaining decks for each player
+        hero_remaining = [i for i in range(n) if i not in hero_won]
+        opp_remaining = [j for j in range(n) if j not in opp_won]
+
         # -----------------------------------------------------------------
         # CASE 1: Hero has won with all decks (Hero wins the match)
         # -----------------------------------------------------------------
@@ -214,49 +210,25 @@ def conquest_nash(W: np.ndarray) -> list:
         # CASE 3: Hero has n-1 wins (needs to win one more game to win match)
         # -----------------------------------------------------------------
         # Hero has one deck left, opponent has (n - opp_wins) decks left.
-        # Hero wins if they beat ALL remaining opponent decks.
-        # This is because opponent can keep using their decks until one wins.
-        #
-        # P(Hero wins) = 1 - P(Hero loses all remaining games)
-        #              = 1 - product of (1 - W[remaining_hero, remaining_opp])
+        # Hero wins if they beat ALL remaining opponent decks
         # -----------------------------------------------------------------
+        
         elif hero_wins == n - 1:
-            # Remaining decks for each player
-            hero_remaining = [i for i in range(n) if i not in hero_won]
-            opp_remaining = [j for j in range(n) if j not in opp_won]
 
-            # Hero has exactly one deck left (hero_remaining has 1 element)
-            # Hero needs to beat all opponent's remaining decks
-            # P(lose to all) = product of (1 - W[hero_deck, opp_deck])
-            prob_lose_all = 1.0
-            for h in hero_remaining:
-                for o in opp_remaining:
-                    prob_lose_all *= (1 - W[h, o])
-
-            V = 1.0 - prob_lose_all
+            V = 1-np.prod(1-W[hero_remaining[0], opp_remaining])
             V_opp = 1.0 - V
             result['winrate'] = (V, V_opp)
 
         # -----------------------------------------------------------------
         # CASE 4: Opponent has n-1 wins (needs to win one more to win match)
         # -----------------------------------------------------------------
-        # Symmetric to Case 3. Hero wins if they win ALL remaining games.
-        # P(Hero wins) = product of W[remaining_hero, remaining_opp]
+        # Symmetric to Case 3
         # -----------------------------------------------------------------
         elif opp_wins == n - 1:
             # Remaining decks for each player
-            hero_remaining = [i for i in range(n) if i not in hero_won]
-            opp_remaining = [j for j in range(n) if j not in opp_won]
-
-            # Opponent has exactly one deck left
-            # Hero needs to beat that deck with all their remaining decks
-            prob_win_all = 1.0
-            for h in hero_remaining:
-                for o in opp_remaining:
-                    prob_win_all *= W[h, o]
-
-            V = prob_win_all
-            V_opp = 1.0 - V
+            
+            V_opp = 1-np.prod(W[hero_remaining, opp_remaining[0]])
+            V = 1-V_opp
             result['winrate'] = (V, V_opp)
 
         # -----------------------------------------------------------------
@@ -269,34 +241,21 @@ def conquest_nash(W: np.ndarray) -> list:
         # G[i,j] = W[i,j] * V(win_state) + (1-W[i,j]) * V(lose_state)
         #
         # where:
-        # - win_state = state if Hero wins (opponent's deck j eliminated)
-        # - lose_state = state if Hero loses (hero's deck i continues,
-        #                but since Opp won, Hero must beat their deck next time)
-        #
-        # Wait, let me reconsider Conquest rules:
-        # - Winner's deck is eliminated
-        # - So if Hero wins with deck i against opp's deck j:
-        #   - Hero's deck i is eliminated (hero_won + {i})
-        #   - Opp's deck j stays (opp can reuse it)
-        # - If Hero loses:
-        #   - Hero's deck i stays
-        #   - Opp's deck j is eliminated (opp_won + {j})
+        # - win_state = state if Hero wins (hero's deck i eliminated)
+        # - lose_state = state if Hero loses (opp's deck j eliminated)
         # -----------------------------------------------------------------
         else:
-            # Available decks for each player (not yet eliminated)
-            hero_available = [i for i in range(n) if i not in hero_won]
-            opp_available = [j for j in range(n) if j not in opp_won]
 
-            num_hero_decks = len(hero_available)
-            num_opp_decks = len(opp_available)
+            num_hero_decks = len(hero_remaining)
+            num_opp_decks = len(opp_remaining)
 
             # Build payoff matrix G for deck selection game
             # Rows = Hero's deck choices
             # Columns = Opponent's deck choices
             G = np.zeros((num_hero_decks, num_opp_decks))
 
-            for idx_h, h in enumerate(hero_available):
-                for idx_o, o in enumerate(opp_available):
+            for idx_h, h in enumerate(hero_remaining):
+                for idx_o, o in enumerate(opp_remaining):
                     # If Hero wins (deck h beats deck o):
                     # Hero's deck h is eliminated (added to hero_won)
                     # Opponent's deck o remains available

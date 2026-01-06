@@ -100,15 +100,6 @@ def ban_nash(W: np.ndarray, bans: int, match_format: str = 'conquest') -> dict:
     >>> print(f"Ban strategy: {result['bans']['hero']}")
     >>> print(f"Ban options: {result['stratlist']['hero']}")
 
-    Notes
-    -----
-    The complexity is O(C(n,k)^2 * match_complexity) where:
-    - C(n,k) = number of ways to choose k bans from n decks
-    - match_complexity = O(3^(n-k) * (n-k)^3) for Conquest
-                       = O(4^(n-k) * (n-k)^3) for LHS
-
-    For typical tournament settings (n=4, k=1), there are C(4,1)^2 = 16
-    ban combinations to evaluate.
     """
     # Validate inputs
     W = np.asarray(W, dtype=float)
@@ -131,13 +122,6 @@ def ban_nash(W: np.ndarray, bans: int, match_format: str = 'conquest') -> dict:
     else:  # lhs
         nash_fn = lhs_nash
 
-    # =========================================================================
-    # STEP 1: GENERATE ALL BAN COMBINATIONS
-    # =========================================================================
-    # Each player can ban any k decks from their opponent's lineup.
-    # Hero bans from Opponent's decks (columns of W)
-    # Opponent bans from Hero's decks (rows of W)
-    # =========================================================================
 
     # Generate all C(n, bans) combinations for each player
     # Each combination is a tuple of deck indices to ban
@@ -148,7 +132,7 @@ def ban_nash(W: np.ndarray, bans: int, match_format: str = 'conquest') -> dict:
     num_opp_options = len(opp_ban_options)
 
     # =========================================================================
-    # STEP 2: BUILD PAYOFF MATRIX FOR BAN PHASE
+    # STEP 2: BUILD PAYOFF MATRIX FOR BAN PHASE AND SOLVE THE GAME
     # =========================================================================
     # G[i,j] = P(Hero wins match) when:
     #   - Hero bans hero_ban_options[i] (these decks from Opponent)
@@ -195,26 +179,11 @@ def ban_nash(W: np.ndarray, bans: int, match_format: str = 'conquest') -> dict:
             G[i, j] = hero_winrate
             matches[i][j] = match_result
 
-    # =========================================================================
-    # STEP 3: SOLVE THE BAN PHASE GAME
-    # =========================================================================
-    # Now we have a game where:
-    # - Hero chooses a ban combination (rows of G)
-    # - Opponent chooses a ban combination (columns of G)
-    # - Payoff is G[i,j] = P(Hero wins match)
-    #
-    # Find Nash equilibrium for this zero-sum game
-    # =========================================================================
-
     solution = solve_game(G)
 
     hero_ban_strategy = solution['hero_sol']
     opp_ban_strategy = solution['opp_sol']
     overall_winrate = solution['V']
-
-    # =========================================================================
-    # STEP 4: PACKAGE AND RETURN RESULTS
-    # =========================================================================
 
     return {
         'bans': {

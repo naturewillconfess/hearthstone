@@ -48,8 +48,11 @@ dev = [
 Homepage = "https://github.com/savakian/hearthstone"
 Repository = "https://github.com/savakian/hearthstone"
 
+[tool.setuptools]
+package-dir = {"" = "src"}
+
 [tool.setuptools.packages.find]
-where = ["."]
+where = ["src"]
 include = ["hearthstone*"]
 
 [tool.pytest.ini_options]

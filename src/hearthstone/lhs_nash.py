@@ -91,12 +91,6 @@ def lhs_nash(W: np.ndarray) -> list:
     ...            and r.get('havetoplay_opp') is None][-1]
     >>> print(f"Match winrate: {initial['winrate'][0]:.4f}")
 
-    Notes
-    -----
-    The algorithm complexity is O(4^n * n^2 * n^3):
-    - Approximately 4^n possible states (each deck can be: available, lost by hero,
-      lost by opponent, plus forced-play variations)
-    - Each non-terminal state requires solving an LP
     """
     # Convert input to numpy array and validate
     W = np.asarray(W, dtype=float)
@@ -152,12 +146,15 @@ def lhs_nash(W: np.ndarray) -> list:
 
     for hero_lost in all_subsets:
         for opp_lost in all_subsets:
-            # Skip impossible state where both have lost all decks
-            if len(hero_lost) == n and len(opp_lost) == n:
-                continue
 
             hero_lost_count = len(hero_lost)
             opp_lost_count = len(opp_lost)
+            hero_remaining = [i for i in range(n) if i not in hero_lost]
+            opp_remaining = [j for j in range(n) if j not in opp_lost]
+
+            # Skip impossible state where both have lost all decks
+            if hero_lost_count == n and opp_lost_count == n:
+                continue
 
             # Near-terminal states: don't need forced-play tracking
             # because outcome is deterministic
@@ -171,26 +168,22 @@ def lhs_nash(W: np.ndarray) -> list:
             # Only Hero has lost (Opponent won the last game)
             # Opponent is forced to play their winning deck
             elif hero_lost_count > 0 and opp_lost_count == 0:
-                opp_available = [j for j in range(n) if j not in opp_lost]
-                for opp_forced in opp_available:
+                for opp_forced in opp_remaining:
                     all_states.append((hero_lost, opp_lost, None, opp_forced))
 
             # Only Opponent has lost (Hero won the last game)
             # Hero is forced to play their winning deck
             elif hero_lost_count == 0 and opp_lost_count > 0:
-                hero_available = [i for i in range(n) if i not in hero_lost]
-                for hero_forced in hero_available:
+                for hero_forced in hero_remaining:
                     all_states.append((hero_lost, opp_lost, hero_forced, None))
 
             # Both have lost: either Hero or Opponent won the last game
             else:
-                hero_available = [i for i in range(n) if i not in hero_lost]
-                opp_available = [j for j in range(n) if j not in opp_lost]
                 # Hero won last (forced to play their winning deck)
-                for hero_forced in hero_available:
+                for hero_forced in hero_remaining:
                     all_states.append((hero_lost, opp_lost, hero_forced, None))
                 # Opponent won last (forced to play their winning deck)
-                for opp_forced in opp_available:
+                for opp_forced in opp_remaining:
                     all_states.append((hero_lost, opp_lost, None, opp_forced))
 
     # =========================================================================
@@ -219,6 +212,9 @@ def lhs_nash(W: np.ndarray) -> list:
             'havetoplay_opp': havetoplay_opp
         }
 
+        hero_remaining = [i for i in range(n) if i not in hero_lost]
+        opp_remaining = [j for j in range(n) if j not in opp_lost]
+
         # -----------------------------------------------------------------
         # CASE 1: Hero has lost with all decks (Opponent wins the match)
         # -----------------------------------------------------------------
@@ -243,10 +239,7 @@ def lhs_nash(W: np.ndarray) -> list:
         # P(Hero wins) = product of W[hero_deck, opp_decks]
         # -----------------------------------------------------------------
         elif hero_lost_count == n - 1:
-            hero_remaining = [i for i in range(n) if i not in hero_lost]
-            opp_remaining = [j for j in range(n) if j not in opp_lost]
 
-            # Hero must win all remaining games with their last deck
             prob_win_all = 1.0
             for h in hero_remaining:  # Only one hero deck
                 for o in opp_remaining:
@@ -264,8 +257,6 @@ def lhs_nash(W: np.ndarray) -> list:
         # P(Hero wins) = 1 - P(all Hero decks lose to Opp's last deck)
         # -----------------------------------------------------------------
         elif opp_lost_count == n - 1:
-            hero_remaining = [i for i in range(n) if i not in hero_lost]
-            opp_remaining = [j for j in range(n) if j not in opp_lost]
 
             # Hero wins if at least one deck beats opponent's last deck
             prob_lose_all = 1.0
@@ -281,8 +272,8 @@ def lhs_nash(W: np.ndarray) -> list:
         # CASE 5: General case - need to solve deck selection game
         # -----------------------------------------------------------------
         else:
-            hero_available = [i for i in range(n) if i not in hero_lost]
-            opp_available = [j for j in range(n) if j not in opp_lost]
+            hero_remaining = [i for i in range(n) if i not in hero_lost]
+            opp_remaining = [j for j in range(n) if j not in opp_lost]
 
             # ---------------------------------------------------------
             # SUBCASE 5A: Hero is forced to play a specific deck
@@ -290,9 +281,9 @@ def lhs_nash(W: np.ndarray) -> list:
             if havetoplay_hero is not None:
                 # Hero has no choice, Opponent chooses from available decks
                 h = havetoplay_hero
-                G = np.zeros((1, len(opp_available)))
+                G = np.zeros((1, len(opp_remaining)))
 
-                for idx_o, o in enumerate(opp_available):
+                for idx_o, o in enumerate(opp_remaining):
                     # If Hero wins: Opponent's deck o is eliminated
                     # Hero stays forced to play deck h
                     new_opp_lost = frozenset(opp_lost | {o})
@@ -322,9 +313,9 @@ def lhs_nash(W: np.ndarray) -> list:
             elif havetoplay_opp is not None:
                 # Opponent has no choice, Hero chooses from available decks
                 o = havetoplay_opp
-                G = np.zeros((len(hero_available), 1))
+                G = np.zeros((len(hero_remaining), 1))
 
-                for idx_h, h in enumerate(hero_available):
+                for idx_h, h in enumerate(hero_remaining):
                     # If Hero wins: Opponent's deck o is eliminated
                     # Hero becomes forced to play deck h
                     new_opp_lost = frozenset(opp_lost | {o})
@@ -353,10 +344,10 @@ def lhs_nash(W: np.ndarray) -> list:
             # ---------------------------------------------------------
             else:
                 # Both players choose freely (only happens at initial state)
-                G = np.zeros((len(hero_available), len(opp_available)))
+                G = np.zeros((len(hero_remaining), len(opp_remaining)))
 
-                for idx_h, h in enumerate(hero_available):
-                    for idx_o, o in enumerate(opp_available):
+                for idx_h, h in enumerate(hero_remaining):
+                    for idx_o, o in enumerate(opp_remaining):
                         # If Hero wins: Opponent's deck o is eliminated
                         # Hero becomes forced to play deck h
                         new_opp_lost = frozenset(opp_lost | {o})

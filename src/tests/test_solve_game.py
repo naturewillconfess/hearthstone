@@ -1,26 +1,6 @@
-"""
-test_solve_game.py - Tests for the zero-sum game solver
-
-These tests verify that solve_game() correctly computes Nash equilibria
-for various zero-sum games, including:
-1. Symmetric games (expected value 0.5)
-2. Known game theory examples from Owen's textbook
-3. Games with dominated strategies (pure equilibria)
-4. Statistical calibration tests with random matrices
-5. Probability validity checks
-6. Best response verification
-
-The test cases are ported from the R package's test-solver.R with additions.
-"""
 
 import numpy as np
 import pytest
-import sys
-import os
-
-# Add the parent directory to path so we can import hearthstone
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 from hearthstone import solve_game
 
 
@@ -209,7 +189,6 @@ class TestCalibration:
 
         This is a statistical test, so we use wide tolerances.
         """
-        np.random.seed(42)  # For reproducibility
         n_games = 10000
 
         values = []
@@ -300,7 +279,6 @@ class TestProbabilityValidity:
 
     def test_probabilities_sum_to_one(self):
         """Strategies should always sum to 1."""
-        np.random.seed(123)
         for _ in range(100):
             m, n = np.random.randint(1, 6, size=2)
             W = np.random.uniform(-1, 2, (m, n))
@@ -311,7 +289,6 @@ class TestProbabilityValidity:
 
     def test_probabilities_non_negative(self):
         """Strategies should always be non-negative."""
-        np.random.seed(456)
         for _ in range(100):
             m, n = np.random.randint(1, 6, size=2)
             W = np.random.uniform(-1, 2, (m, n))
@@ -339,7 +316,6 @@ class TestBestResponse:
         For any row i with positive probability, the expected payoff
         against Opponent's mixed strategy should equal V.
         """
-        np.random.seed(789)
         for _ in range(50):
             W = np.random.uniform(0, 1, (3, 3))
             result = solve_game(W)
@@ -364,7 +340,6 @@ class TestBestResponse:
         against that pure strategy should equal V (opponent can't do better
         than V by deviating).
         """
-        np.random.seed(321)
         for _ in range(50):
             W = np.random.uniform(0, 1, (3, 3))
             result = solve_game(W)

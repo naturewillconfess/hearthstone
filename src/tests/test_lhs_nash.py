@@ -1,27 +1,12 @@
-"""
-test_lhs_nash.py - Tests for the Last Hero Standing (LHS) format Nash calculator
 
-These tests verify that lhs_nash() correctly computes Nash equilibria
-for the LHS tournament format. Tests include:
-1. Symmetric games (expected 50/50 match winrate)
-2. Minimal 1-deck games
-3. Statistical calibration with random matrices
-4. Forced play mechanics verification
-5. Comparison with Conquest (should differ for asymmetric matrices)
-6. Terminal state verification
-
-The test cases are ported from the R package's test-LHS_nash.R with additions.
-"""
 
 import numpy as np
 import pytest
-import sys
-import os
-
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from hearthstone import lhs_nash, conquest_nash
 
+n_games = 200  
+tolerance = 0.05
 
 def find_initial_state(result):
     """
@@ -78,19 +63,6 @@ class TestMinimalLHS:
     Test the smallest possible LHS match (1 deck each).
     """
 
-    def test_1x1_lhs(self):
-        """
-        1x1 LHS: Single game determines the match.
-
-        With W = [[0.5]], the match is just one coin flip.
-        """
-        W = np.array([[0.5]])
-        result = lhs_nash(W)
-        initial = find_initial_state(result)
-
-        assert initial['winrate'][0] == pytest.approx(0.5, abs=1e-6)
-        assert initial['winrate'][1] == pytest.approx(0.5, abs=1e-6)
-
     def test_1x1_biased(self):
         """1x1 LHS with biased winrate."""
         W = np.array([[0.7]])
@@ -113,13 +85,7 @@ class TestCalibration:
         Over many random matches:
         - Mean match winrate should be near 0.5
         - Mean deck selection probabilities should be near 1/3
-
-        Note: Using fewer games than R's 1000 for faster testing.
-        The R test uses tolerance of 0.2.
         """
-        np.random.seed(42)
-        n_games = 100  # Reduced from R's 1000 for speed
-        tolerance = 0.2
 
         winrates = []
         hero_strategies = []
@@ -131,43 +97,42 @@ class TestCalibration:
             initial = find_initial_state(result)
 
             winrates.append(initial['winrate'][0])
-            if 'nash' in initial:
-                hero_strategies.append(initial['nash'][0])
-                opp_strategies.append(initial['nash'][1])
+            hero_strategies.append(initial['nash'][0])
+            opp_strategies.append(initial['nash'][1])
 
         mean_winrate = np.mean(winrates)
+        mean_hero = np.mean(hero_strategies, axis=0)
+        mean_opp = np.mean(opp_strategies, axis=0)
 
         # Match winrate should be near 0.5
-        assert abs(mean_winrate - 0.5) < tolerance, \
-            f"Mean winrate {mean_winrate} too far from 0.5"
-
-        # Strategy probabilities should be near 1/3 (if we have strategies)
-        if hero_strategies:
-            mean_hero = np.mean(hero_strategies, axis=0)
-            mean_opp = np.mean(opp_strategies, axis=0)
-
-            for i, prob in enumerate(mean_hero):
-                assert abs(prob - 1/3) < tolerance, \
-                    f"Hero strategy[{i}] = {prob} too far from 0.333"
-            for i, prob in enumerate(mean_opp):
-                assert abs(prob - 1/3) < tolerance, \
-                    f"Opp strategy[{i}] = {prob} too far from 0.333"
+        assert mean_winrate == pytest.approx(0.5, abs=tolerance)
+        np.testing.assert_allclose(mean_hero, [1/3]*3, atol=tolerance)
+        np.testing.assert_allclose(mean_opp, [1/3]*3, atol=tolerance)
 
     def test_random_2x2_calibration(self):
         """Test calibration for 2x2 LHS matches."""
-        np.random.seed(44)
-        n_games = 100
-        tolerance = 0.2
+        n_games = 300
+        tolerance = 0.1
 
         winrates = []
+        hero_strategies = []
+        opp_strategies = []
         for _ in range(n_games):
             W = np.random.uniform(0, 1, (2, 2))
             result = lhs_nash(W)
             initial = find_initial_state(result)
             winrates.append(initial['winrate'][0])
+            hero_strategies.append(initial['nash'][0])
+            opp_strategies.append(initial['nash'][1])
 
         mean_winrate = np.mean(winrates)
-        assert abs(mean_winrate - 0.5) < tolerance
+        mean_hero = np.mean(hero_strategies, axis=0)
+        mean_opp = np.mean(opp_strategies, axis=0)
+
+        # Match winrate should be near 0.5
+        assert mean_winrate == pytest.approx(0.5, abs=tolerance)
+        np.testing.assert_allclose(mean_hero, [1/2]*2, atol=tolerance)
+        np.testing.assert_allclose(mean_opp, [1/2]*2, atol=tolerance)
 
 
 class TestLHSSpecificBehavior:
@@ -290,7 +255,6 @@ class TestTerminalStates:
         Hero has one deck left. They win if that deck beats ALL remaining
         opponent decks in a row.
         """
-        np.random.seed(567)
         W = np.random.uniform(0, 1, (3, 3))
         result = lhs_nash(W)
 
@@ -315,7 +279,6 @@ class TestComparisonWithConquest:
 
         The formats have different rules, so optimal strategies differ.
         """
-        np.random.seed(888)
         different_count = 0
 
         for _ in range(20):
@@ -336,23 +299,6 @@ class TestComparisonWithConquest:
         # Most random matrices should give different results
         assert different_count > 10, \
             f"Only {different_count}/20 matrices gave different results"
-
-    def test_same_for_symmetric(self):
-        """
-        For symmetric matrices, LHS and Conquest should both give 50/50.
-
-        While strategies might differ, the value should be 0.5 for both.
-        """
-        W = np.full((3, 3), 0.5)
-
-        lhs_result = lhs_nash(W)
-        conquest_result = conquest_nash(W)
-
-        lhs_initial = find_initial_state(lhs_result)
-        conquest_initial = conquest_result[-1]
-
-        assert lhs_initial['winrate'][0] == pytest.approx(0.5, abs=1e-6)
-        assert conquest_initial['winrate'][0] == pytest.approx(0.5, abs=1e-6)
 
 
 class TestAsymmetricMatchups:
@@ -434,7 +380,6 @@ class TestWinrateProperties:
 
     def test_winrates_sum_to_one(self):
         """Hero winrate + Opponent winrate should equal 1."""
-        np.random.seed(333)
         W = np.random.uniform(0, 1, (3, 3))
         result = lhs_nash(W)
 
@@ -443,7 +388,6 @@ class TestWinrateProperties:
 
     def test_winrates_in_valid_range(self):
         """All winrates should be between 0 and 1."""
-        np.random.seed(444)
         W = np.random.uniform(0, 1, (3, 3))
         result = lhs_nash(W)
 

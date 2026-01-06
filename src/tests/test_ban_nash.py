@@ -21,8 +21,8 @@ from hearthstone import ban_nash
 
 
 # Test parameters
-N_GAMES = 50  # Reduced from R's 100 for faster testing
-TOLERANCE = 0.2  # Same tolerance as R tests
+n_games = 200
+tolerance = 0.05
 
 
 class TestSymmetricBanNash:
@@ -62,13 +62,12 @@ class TestCalibrationConquest:
         - Mean winrate should be near 0.5
         - Mean ban probabilities should be near 1/3 (3 choices)
         """
-        np.random.seed(42)
 
         winrates = []
         hero_bans = []
         opp_bans = []
 
-        for _ in range(N_GAMES):
+        for _ in range(n_games):
             W = np.random.uniform(0, 1, (3, 3))
             result = ban_nash(W, bans=1, match_format='conquest')
             winrates.append(result['winrate'][0])
@@ -80,13 +79,11 @@ class TestCalibrationConquest:
         mean_opp = np.mean(opp_bans, axis=0)
 
         # Winrate should be near 0.5
-        assert abs(mean_winrate - 0.5) < TOLERANCE
+        assert mean_winrate == pytest.approx(0.5, abs=tolerance)
 
         # Ban probabilities should be near 1/3
-        for prob in mean_hero:
-            assert abs(prob - 1/3) < TOLERANCE
-        for prob in mean_opp:
-            assert abs(prob - 1/3) < TOLERANCE
+        assert_allclose(mean_hero, [1/3] * 3, atol=tolerance)
+        assert_allclose(mean_opp, [1/3] * 3, atol=tolerance)
 
     def test_3x3_2ban_conquest(self):
         """
@@ -95,13 +92,12 @@ class TestCalibrationConquest:
         With 2 bans from 3 decks, there are C(3,2)=3 ban combinations.
         Each ban combination should have probability near 1/3.
         """
-        np.random.seed(43)
 
         winrates = []
         hero_bans = []
         opp_bans = []
 
-        for _ in range(N_GAMES):
+        for _ in range(n_games):
             W = np.random.uniform(0, 1, (3, 3))
             result = ban_nash(W, bans=2, match_format='conquest')
             winrates.append(result['winrate'][0])
@@ -112,11 +108,9 @@ class TestCalibrationConquest:
         mean_hero = np.mean(hero_bans, axis=0)
         mean_opp = np.mean(opp_bans, axis=0)
 
-        assert abs(mean_winrate - 0.5) < TOLERANCE
-        for prob in mean_hero:
-            assert abs(prob - 1/3) < TOLERANCE
-        for prob in mean_opp:
-            assert abs(prob - 1/3) < TOLERANCE
+        assert mean_winrate == pytest.approx(0.5, abs=tolerance)
+        assert_allclose(mean_hero, [1/3] * 3, atol=tolerance)
+        assert_allclose(mean_opp, [1/3] * 3, atol=tolerance)
 
     def test_4x4_1ban_conquest(self):
         """
@@ -125,13 +119,12 @@ class TestCalibrationConquest:
         With 1 ban from 4 decks, there are 4 ban choices.
         Each should have probability near 1/4.
         """
-        np.random.seed(44)
 
         winrates = []
         hero_bans = []
         opp_bans = []
 
-        for _ in range(N_GAMES):
+        for _ in range(n_games):
             W = np.random.uniform(0, 1, (4, 4))
             result = ban_nash(W, bans=1, match_format='conquest')
             winrates.append(result['winrate'][0])
@@ -142,11 +135,9 @@ class TestCalibrationConquest:
         mean_hero = np.mean(hero_bans, axis=0)
         mean_opp = np.mean(opp_bans, axis=0)
 
-        assert abs(mean_winrate - 0.5) < TOLERANCE
-        for prob in mean_hero:
-            assert abs(prob - 0.25) < TOLERANCE
-        for prob in mean_opp:
-            assert abs(prob - 0.25) < TOLERANCE
+        assert mean_winrate == pytest.approx(0.5, abs=tolerance)
+        assert_allclose(mean_hero, [0.25] * 4, atol=tolerance)
+        assert_allclose(mean_opp, [0.25] * 4, atol=tolerance)
 
     def test_4x4_2ban_conquest(self):
         """
@@ -155,13 +146,12 @@ class TestCalibrationConquest:
         With 2 bans from 4 decks, there are C(4,2)=6 ban combinations.
         Each should have probability near 1/6.
         """
-        np.random.seed(45)
 
         winrates = []
         hero_bans = []
         opp_bans = []
 
-        for _ in range(N_GAMES):
+        for _ in range(n_games):
             W = np.random.uniform(0, 1, (4, 4))
             result = ban_nash(W, bans=2, match_format='conquest')
             winrates.append(result['winrate'][0])
@@ -172,11 +162,9 @@ class TestCalibrationConquest:
         mean_hero = np.mean(hero_bans, axis=0)
         mean_opp = np.mean(opp_bans, axis=0)
 
-        assert abs(mean_winrate - 0.5) < TOLERANCE
-        for prob in mean_hero:
-            assert abs(prob - 1/6) < TOLERANCE
-        for prob in mean_opp:
-            assert abs(prob - 1/6) < TOLERANCE
+        assert mean_winrate == pytest.approx(0.5, abs=tolerance)
+        assert_allclose(mean_hero, [1/6] * 6, atol=tolerance)
+        assert_allclose(mean_opp, [1/6] * 6, atol=tolerance)
 
 
 class TestCalibrationLHS:
@@ -186,13 +174,12 @@ class TestCalibrationLHS:
 
     def test_3x3_1ban_lhs(self):
         """Test 3x3 LHS with 1 ban."""
-        np.random.seed(52)
 
         winrates = []
         hero_bans = []
         opp_bans = []
 
-        for _ in range(N_GAMES):
+        for _ in range(n_games):
             W = np.random.uniform(0, 1, (3, 3))
             result = ban_nash(W, bans=1, match_format='lhs')
             winrates.append(result['winrate'][0])
@@ -203,21 +190,18 @@ class TestCalibrationLHS:
         mean_hero = np.mean(hero_bans, axis=0)
         mean_opp = np.mean(opp_bans, axis=0)
 
-        assert abs(mean_winrate - 0.5) < TOLERANCE
-        for prob in mean_hero:
-            assert abs(prob - 1/3) < TOLERANCE
-        for prob in mean_opp:
-            assert abs(prob - 1/3) < TOLERANCE
+        assert mean_winrate == pytest.approx(0.5, abs=tolerance)
+        assert_allclose(mean_hero, [1/3] * 3, atol=tolerance)
+        assert_allclose(mean_opp, [1/3] * 3, atol=tolerance)
 
     def test_3x3_2ban_lhs(self):
         """Test 3x3 LHS with 2 bans."""
-        np.random.seed(53)
 
         winrates = []
         hero_bans = []
         opp_bans = []
 
-        for _ in range(N_GAMES):
+        for _ in range(n_games):
             W = np.random.uniform(0, 1, (3, 3))
             result = ban_nash(W, bans=2, match_format='lhs')
             winrates.append(result['winrate'][0])
@@ -228,21 +212,18 @@ class TestCalibrationLHS:
         mean_hero = np.mean(hero_bans, axis=0)
         mean_opp = np.mean(opp_bans, axis=0)
 
-        assert abs(mean_winrate - 0.5) < TOLERANCE
-        for prob in mean_hero:
-            assert abs(prob - 1/3) < TOLERANCE
-        for prob in mean_opp:
-            assert abs(prob - 1/3) < TOLERANCE
+        assert mean_winrate == pytest.approx(0.5, abs=tolerance)
+        assert_allclose(mean_hero, [1/3] * 3, atol=tolerance)
+        assert_allclose(mean_opp, [1/3] * 3, atol=tolerance)
 
     def test_4x4_1ban_lhs(self):
         """Test 4x4 LHS with 1 ban."""
-        np.random.seed(54)
 
         winrates = []
         hero_bans = []
         opp_bans = []
 
-        for _ in range(N_GAMES):
+        for _ in range(n_games):
             W = np.random.uniform(0, 1, (4, 4))
             result = ban_nash(W, bans=1, match_format='lhs')
             winrates.append(result['winrate'][0])
@@ -253,21 +234,18 @@ class TestCalibrationLHS:
         mean_hero = np.mean(hero_bans, axis=0)
         mean_opp = np.mean(opp_bans, axis=0)
 
-        assert abs(mean_winrate - 0.5) < TOLERANCE
-        for prob in mean_hero:
-            assert abs(prob - 0.25) < TOLERANCE
-        for prob in mean_opp:
-            assert abs(prob - 0.25) < TOLERANCE
+        assert mean_winrate == pytest.approx(0.5, abs=tolerance)
+        assert_allclose(mean_hero, [0.25] * 4, atol=tolerance)
+        assert_allclose(mean_opp, [0.25] * 4, atol=tolerance)
 
     def test_4x4_2ban_lhs(self):
         """Test 4x4 LHS with 2 bans."""
-        np.random.seed(55)
 
         winrates = []
         hero_bans = []
         opp_bans = []
 
-        for _ in range(N_GAMES):
+        for _ in range(n_games):
             W = np.random.uniform(0, 1, (4, 4))
             result = ban_nash(W, bans=2, match_format='lhs')
             winrates.append(result['winrate'][0])
@@ -278,11 +256,9 @@ class TestCalibrationLHS:
         mean_hero = np.mean(hero_bans, axis=0)
         mean_opp = np.mean(opp_bans, axis=0)
 
-        assert abs(mean_winrate - 0.5) < TOLERANCE
-        for prob in mean_hero:
-            assert abs(prob - 1/6) < TOLERANCE
-        for prob in mean_opp:
-            assert abs(prob - 1/6) < TOLERANCE
+        assert mean_winrate == pytest.approx(0.5, abs=tolerance)
+        assert_allclose(mean_hero, [1/6] * 6, atol=tolerance)
+        assert_allclose(mean_opp, [1/6] * 6, atol=tolerance)
 
 
 class TestBanNashStructure:
