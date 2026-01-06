@@ -37,8 +37,8 @@ class TestSymmetricLHS:
         initial = find_initial_state(result)
 
         # Match should be 50/50
-        assert initial['winrate'][0] == pytest.approx(0.5, abs=1e-6)
-        assert initial['winrate'][1] == pytest.approx(0.5, abs=1e-6)
+        assert initial['winrate'][0] == pytest.approx(0.5, abs=1e-6), f"Hero winrate mismatch. Actual: {initial['winrate'][0]}, Expected: 0.5"
+        assert initial['winrate'][1] == pytest.approx(0.5, abs=1e-6), f"Opp winrate mismatch. Actual: {initial['winrate'][1]}, Expected: 0.5"
 
     def test_2x2_symmetric(self):
         """Test a 2x2 symmetric LHS match."""
@@ -46,8 +46,8 @@ class TestSymmetricLHS:
         result = lhs_nash(W)
         initial = find_initial_state(result)
 
-        assert initial['winrate'][0] == pytest.approx(0.5, abs=1e-6)
-        assert initial['winrate'][1] == pytest.approx(0.5, abs=1e-6)
+        assert initial['winrate'][0] == pytest.approx(0.5, abs=1e-6), f"Hero winrate mismatch. Actual: {initial['winrate'][0]}, Expected: 0.5"
+        assert initial['winrate'][1] == pytest.approx(0.5, abs=1e-6), f"Opp winrate mismatch. Actual: {initial['winrate'][1]}, Expected: 0.5"
 
     def test_4x4_symmetric(self):
         """Test a 4x4 symmetric LHS match."""
@@ -55,7 +55,7 @@ class TestSymmetricLHS:
         result = lhs_nash(W)
         initial = find_initial_state(result)
 
-        assert initial['winrate'][0] == pytest.approx(0.5, abs=1e-6)
+        assert initial['winrate'][0] == pytest.approx(0.5, abs=1e-6), f"Hero winrate mismatch. Actual: {initial['winrate'][0]}, Expected: 0.5"
 
 
 class TestMinimalLHS:
@@ -70,7 +70,7 @@ class TestMinimalLHS:
         initial = find_initial_state(result)
 
         # With one deck each, match winrate equals single game winrate
-        assert initial['winrate'][0] == pytest.approx(0.7, abs=1e-6)
+        assert initial['winrate'][0] == pytest.approx(0.7, abs=1e-6), f"Hero winrate mismatch. Actual: {initial['winrate'][0]}, Expected: 0.7"
 
 
 class TestCalibration:
@@ -105,9 +105,9 @@ class TestCalibration:
         mean_opp = np.mean(opp_strategies, axis=0)
 
         # Match winrate should be near 0.5
-        assert mean_winrate == pytest.approx(0.5, abs=tolerance)
-        np.testing.assert_allclose(mean_hero, [1/3]*3, atol=tolerance)
-        np.testing.assert_allclose(mean_opp, [1/3]*3, atol=tolerance)
+        assert mean_winrate == pytest.approx(0.5, abs=tolerance), f"Mean winrate mismatch. Actual: {mean_winrate}, Expected: 0.5"
+        np.testing.assert_allclose(mean_hero, [1/3]*3, atol=tolerance, err_msg=f"Hero strategy does not match. Actual: {mean_hero}, Desired: {[1/3]*3}")
+        np.testing.assert_allclose(mean_opp, [1/3]*3, atol=tolerance, err_msg=f"Opp strategy does not match. Actual: {mean_opp}, Desired: {[1/3]*3}")
 
     def test_random_2x2_calibration(self):
         """Test calibration for 2x2 LHS matches."""
@@ -130,9 +130,9 @@ class TestCalibration:
         mean_opp = np.mean(opp_strategies, axis=0)
 
         # Match winrate should be near 0.5
-        assert mean_winrate == pytest.approx(0.5, abs=tolerance)
-        np.testing.assert_allclose(mean_hero, [1/2]*2, atol=tolerance)
-        np.testing.assert_allclose(mean_opp, [1/2]*2, atol=tolerance)
+        assert mean_winrate == pytest.approx(0.5, abs=tolerance), f"Mean winrate mismatch. Actual: {mean_winrate}, Expected: 0.5"
+        np.testing.assert_allclose(mean_hero, [1/2]*2, atol=tolerance, err_msg=f"Hero strategy does not match. Actual: {mean_hero}, Desired: {[1/2]*2}")
+        np.testing.assert_allclose(mean_opp, [1/2]*2, atol=tolerance, err_msg=f"Opp strategy does not match. Actual: {mean_opp}, Desired: {[1/2]*2}")
 
 
 class TestLHSSpecificBehavior:
@@ -231,8 +231,8 @@ class TestTerminalStates:
         hero_wins = [s for s in result if len(s['score'][1]) == 2]
 
         for state in hero_wins:
-            assert state['winrate'][0] == pytest.approx(1.0, abs=1e-6)
-            assert state['winrate'][1] == pytest.approx(0.0, abs=1e-6)
+            assert state['winrate'][0] == pytest.approx(1.0, abs=1e-6), f"Hero winrate should be 1.0 when hero wins. Actual: {state['winrate'][0]}"
+            assert state['winrate'][1] == pytest.approx(0.0, abs=1e-6), f"Opp winrate should be 0.0 when hero wins. Actual: {state['winrate'][1]}"
 
     def test_opponent_wins_all(self):
         """
@@ -245,8 +245,8 @@ class TestTerminalStates:
         opp_wins = [s for s in result if len(s['score'][0]) == 2]
 
         for state in opp_wins:
-            assert state['winrate'][0] == pytest.approx(0.0, abs=1e-6)
-            assert state['winrate'][1] == pytest.approx(1.0, abs=1e-6)
+            assert state['winrate'][0] == pytest.approx(0.0, abs=1e-6), f"Hero winrate should be 0.0 when opp wins. Actual: {state['winrate'][0]}"
+            assert state['winrate'][1] == pytest.approx(1.0, abs=1e-6), f"Opp winrate should be 1.0 when opp wins. Actual: {state['winrate'][1]}"
 
     def test_near_terminal_hero_one_left(self):
         """
@@ -264,7 +264,7 @@ class TestTerminalStates:
             if state['score'] == ((0, 1), ()):
                 # Hero wins if deck 2 beats all 3 opponent decks
                 expected = W[2, 0] * W[2, 1] * W[2, 2]
-                assert state['winrate'][0] == pytest.approx(expected, abs=1e-6)
+                assert state['winrate'][0] == pytest.approx(expected, abs=1e-6), f"Near-terminal winrate mismatch. Actual: {state['winrate'][0]}, Expected: {expected}"
                 break
 
 
@@ -384,7 +384,7 @@ class TestWinrateProperties:
         result = lhs_nash(W)
 
         for state in result:
-            assert state['winrate'][0] + state['winrate'][1] == pytest.approx(1.0, abs=1e-10)
+            assert state['winrate'][0] + state['winrate'][1] == pytest.approx(1.0, abs=1e-10), f"Winrates should sum to 1.0. Actual sum: {state['winrate'][0] + state['winrate'][1]}"
 
     def test_winrates_in_valid_range(self):
         """All winrates should be between 0 and 1."""
