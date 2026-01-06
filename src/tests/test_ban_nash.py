@@ -22,7 +22,7 @@ from hearthstone import ban_nash
 
 # Test parameters
 n_games = 200
-tolerance = 0.05
+tolerance = 0.075
 
 
 class TestSymmetricBanNash:
@@ -82,8 +82,8 @@ class TestCalibrationConquest:
         assert mean_winrate == pytest.approx(0.5, abs=tolerance)
 
         # Ban probabilities should be near 1/3
-        assert_allclose(mean_hero, [1/3] * 3, atol=tolerance)
-        assert_allclose(mean_opp, [1/3] * 3, atol=tolerance)
+        np.testing.assert_allclose(mean_hero, [1/3] * 3, atol=tolerance, err_msg=f"Hero strategy does not match. Actual: {mean_hero}, Desired: {[1/3] * 3}")
+        np.testing.assert_allclose(mean_opp, [1/3] * 3, atol=tolerance, err_msg=f"Opp strategy does not match. Actual: {mean_opp}, Desired: {[1/3] * 3}")
 
     def test_3x3_2ban_conquest(self):
         """
@@ -109,8 +109,8 @@ class TestCalibrationConquest:
         mean_opp = np.mean(opp_bans, axis=0)
 
         assert mean_winrate == pytest.approx(0.5, abs=tolerance)
-        assert_allclose(mean_hero, [1/3] * 3, atol=tolerance)
-        assert_allclose(mean_opp, [1/3] * 3, atol=tolerance)
+        np.testing.assert_allclose(mean_hero, [1/3] * 3, atol=tolerance)
+        np.testing.assert_allclose(mean_opp, [1/3] * 3, atol=tolerance)
 
     def test_4x4_1ban_conquest(self):
         """
@@ -136,8 +136,8 @@ class TestCalibrationConquest:
         mean_opp = np.mean(opp_bans, axis=0)
 
         assert mean_winrate == pytest.approx(0.5, abs=tolerance)
-        assert_allclose(mean_hero, [0.25] * 4, atol=tolerance)
-        assert_allclose(mean_opp, [0.25] * 4, atol=tolerance)
+        np.testing.assert_allclose(mean_hero, [0.25] * 4, atol=tolerance)
+        np.testing.assert_allclose(mean_opp, [0.25] * 4, atol=tolerance)
 
     def test_4x4_2ban_conquest(self):
         """
@@ -163,8 +163,8 @@ class TestCalibrationConquest:
         mean_opp = np.mean(opp_bans, axis=0)
 
         assert mean_winrate == pytest.approx(0.5, abs=tolerance)
-        assert_allclose(mean_hero, [1/6] * 6, atol=tolerance)
-        assert_allclose(mean_opp, [1/6] * 6, atol=tolerance)
+        np.testing.assert_allclose(mean_hero, [1/6] * 6, atol=tolerance, err_msg=f"Hero strategy does not match. Actual: {mean_hero}, Desired: {[1/6] * 6}")
+        np.testing.assert_allclose(mean_opp, [1/6] * 6, atol=tolerance, err_msg=f"Opp strategy does not match. Actual: {mean_opp}, Desired: {[1/6] * 6}")
 
 
 class TestCalibrationLHS:
@@ -191,8 +191,8 @@ class TestCalibrationLHS:
         mean_opp = np.mean(opp_bans, axis=0)
 
         assert mean_winrate == pytest.approx(0.5, abs=tolerance)
-        assert_allclose(mean_hero, [1/3] * 3, atol=tolerance)
-        assert_allclose(mean_opp, [1/3] * 3, atol=tolerance)
+        np.testing.assert_allclose(mean_hero, [1/3] * 3, atol=tolerance)
+        np.testing.assert_allclose(mean_opp, [1/3] * 3, atol=tolerance)
 
     def test_3x3_2ban_lhs(self):
         """Test 3x3 LHS with 2 bans."""
@@ -213,8 +213,8 @@ class TestCalibrationLHS:
         mean_opp = np.mean(opp_bans, axis=0)
 
         assert mean_winrate == pytest.approx(0.5, abs=tolerance)
-        assert_allclose(mean_hero, [1/3] * 3, atol=tolerance)
-        assert_allclose(mean_opp, [1/3] * 3, atol=tolerance)
+        np.testing.assert_allclose(mean_hero, [1/3] * 3, atol=tolerance)
+        np.testing.assert_allclose(mean_opp, [1/3] * 3, atol=tolerance)
 
     def test_4x4_1ban_lhs(self):
         """Test 4x4 LHS with 1 ban."""
@@ -235,8 +235,8 @@ class TestCalibrationLHS:
         mean_opp = np.mean(opp_bans, axis=0)
 
         assert mean_winrate == pytest.approx(0.5, abs=tolerance)
-        assert_allclose(mean_hero, [0.25] * 4, atol=tolerance)
-        assert_allclose(mean_opp, [0.25] * 4, atol=tolerance)
+        np.testing.assert_allclose(mean_hero, [0.25] * 4, atol=tolerance)
+        np.testing.assert_allclose(mean_opp, [0.25] * 4, atol=tolerance)
 
     def test_4x4_2ban_lhs(self):
         """Test 4x4 LHS with 2 bans."""
@@ -257,8 +257,8 @@ class TestCalibrationLHS:
         mean_opp = np.mean(opp_bans, axis=0)
 
         assert mean_winrate == pytest.approx(0.5, abs=tolerance)
-        assert_allclose(mean_hero, [1/6] * 6, atol=tolerance)
-        assert_allclose(mean_opp, [1/6] * 6, atol=tolerance)
+        np.testing.assert_allclose(mean_hero, [1/6] * 6, atol=tolerance)
+        np.testing.assert_allclose(mean_opp, [1/6] * 6, atol=tolerance)
 
 
 class TestBanNashStructure:

@@ -2,7 +2,6 @@
 
 import numpy as np
 import pytest
-
 from hearthstone import conquest_nash
 
 
@@ -10,7 +9,7 @@ n_games = 200
 tolerance = 0.05
 
 # Helper function to find a specific state
-def find_state(hero_elim, opp_elim):
+def find_state(result, hero_elim, opp_elim):
     """Find the state where hero eliminated hero_elim and opp eliminated opp_elim."""
     for state in result:
         if (set(state['score'][0]) == set(hero_elim) and
@@ -101,7 +100,7 @@ class TestCalibration:
 
         for _ in range(n_games):
             W = np.random.uniform(0, 1, (3, 3))
-            result = hs.conquest_nash(W)
+            result = conquest_nash(W)
             initial = result[-1]
 
             winrates.append(initial['winrate'][0])
@@ -113,7 +112,7 @@ class TestCalibration:
         mean_opp = np.mean(opp_strategies, axis=0)
 
         # Match winrate should be near 0.5
-        assert mean_winrate = pytest.approx(0.5, abs=tolerance)
+        assert mean_winrate == pytest.approx(0.5, abs=tolerance)
         np.testing.assert_allclose(mean_hero, [1/3]*3, atol=tolerance)
         np.testing.assert_allclose(mean_opp, [1/3]*3, atol=tolerance)
 
@@ -138,7 +137,7 @@ class TestCalibration:
         mean_opp = np.mean(opp_strategies, axis=0)
 
         # Match winrate should be near 0.5
-        assert mean_winrate = pytest.approx(0.5, abs=tolerance)
+        assert mean_winrate == pytest.approx(0.5, abs=tolerance)
         np.testing.assert_allclose(mean_hero, [1/2]*2, atol=tolerance)
         np.testing.assert_allclose(mean_opp, [1/2]*2, atol=tolerance)
 
@@ -183,19 +182,19 @@ class TestBO5Formulas:
         # State (0, 1) vs (): Hero eliminated decks 0 and 1, only deck 2 remains
         # Opponent has all decks. Hero wins if deck 2 beats all 3 opponent decks.
         # P(win) = 1 - (1-W[2,0])*(1-W[2,1])*(1-W[2,2])
-        state_12 = find_state((0, 1), ())
+        state_12 = find_state(result, (0, 1), ())
         expected_12 = 1 - (1-W[2,0])*(1-W[2,1])*(1-W[2,2])
         assert state_12['winrate'][0] == pytest.approx(expected_12, abs=1e-6)
 
         # State (0,2) vs (): Hero has only deck 1, opponent has all
-        state_02 = find_state((0, 2), ())
+        state_02 = find_state(result, (0, 2), ())
         expected_02 = 1 - (1-W[1,0])*(1-W[1,1])*(1-W[1,2])
         assert state_02['winrate'][0] == pytest.approx(expected_02, abs=1e-6)
 
         # State (0,) vs (0,): Hero eliminated deck 0, Opp eliminated deck 0
         # Hero has decks 1,2 vs Opp decks 1,2
         # This is a 2v2 subgame with the reduced matrix W[1:3, 1:3]
-        state_0_0 = find_state((0,), (0,))
+        state_0_0 = find_state(result, (0,), (0,))
         W_sub = W[1:3, 1:3]  # Submatrix for remaining decks
         # Use the BO3 formula on the submatrix
         w = W_sub
@@ -216,8 +215,8 @@ class TestGamePayoffMatrix:
 
         for i in range(3):
             for j in range(3):
-                win_state = find_state((i,), ())
-                lose_state = find_state((), (j,))
+                win_state = find_state(result, (i,), ())
+                lose_state = find_state(result, (), (j,))
                 expected = W[i,j] * win_state['winrate'][0] + (1-W[i,j]) * lose_state['winrate'][0]
                 assert initial['game'][i,j] == pytest.approx(expected, abs=1e-6)
 

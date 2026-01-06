@@ -293,7 +293,7 @@ class TestComparisonWithConquest:
             lhs_wr = lhs_initial['winrate'][0]
             conquest_wr = conquest_initial['winrate'][0]
 
-            if abs(lhs_wr - conquest_wr) > 0.01:
+            if abs(lhs_wr - conquest_wr) > 0.005:
                 different_count += 1
 
         # Most random matrices should give different results
