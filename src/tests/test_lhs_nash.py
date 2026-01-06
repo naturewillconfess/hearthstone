@@ -8,23 +8,6 @@ from hearthstone import lhs_nash, conquest_nash
 n_games = 200  
 tolerance = 0.05
 
-def find_initial_state(result):
-    """
-    Find the initial state from LHS results.
-
-    The initial state has:
-    - Empty score for both players (no losses yet)
-    - No forced plays (havetoplay_hero and havetoplay_opp are None)
-    """
-    for state in result:
-        if (state['score'] == ((), ()) and
-            state.get('havetoplay_hero') is None and
-            state.get('havetoplay_opp') is None):
-            return state
-    # If no state with None forced plays, return last state
-    return result[-1]
-
-
 class TestSymmetricLHS:
     """
     Test symmetric games where all matchups are 50/50.
@@ -34,7 +17,7 @@ class TestSymmetricLHS:
         """Test a basic 3x3 symmetric LHS match."""
         W = np.full((3, 3), 0.5)
         result = lhs_nash(W)
-        initial = find_initial_state(result)
+        initial = result[-1]
 
         # Match should be 50/50
         assert initial['winrate'][0] == pytest.approx(0.5, abs=1e-6), f"Hero winrate mismatch. Actual: {initial['winrate'][0]}, Expected: 0.5"
@@ -44,7 +27,7 @@ class TestSymmetricLHS:
         """Test a 2x2 symmetric LHS match."""
         W = np.full((2, 2), 0.5)
         result = lhs_nash(W)
-        initial = find_initial_state(result)
+        initial = result[-1]
 
         assert initial['winrate'][0] == pytest.approx(0.5, abs=1e-6), f"Hero winrate mismatch. Actual: {initial['winrate'][0]}, Expected: 0.5"
         assert initial['winrate'][1] == pytest.approx(0.5, abs=1e-6), f"Opp winrate mismatch. Actual: {initial['winrate'][1]}, Expected: 0.5"
@@ -53,7 +36,7 @@ class TestSymmetricLHS:
         """Test a 4x4 symmetric LHS match."""
         W = np.full((4, 4), 0.5)
         result = lhs_nash(W)
-        initial = find_initial_state(result)
+        initial = result[-1]
 
         assert initial['winrate'][0] == pytest.approx(0.5, abs=1e-6), f"Hero winrate mismatch. Actual: {initial['winrate'][0]}, Expected: 0.5"
 
@@ -67,7 +50,7 @@ class TestMinimalLHS:
         """1x1 LHS with biased winrate."""
         W = np.array([[0.7]])
         result = lhs_nash(W)
-        initial = find_initial_state(result)
+        initial = result[-1]
 
         # With one deck each, match winrate equals single game winrate
         assert initial['winrate'][0] == pytest.approx(0.7, abs=1e-6), f"Hero winrate mismatch. Actual: {initial['winrate'][0]}, Expected: 0.7"
@@ -94,7 +77,7 @@ class TestCalibration:
         for _ in range(n_games):
             W = np.random.uniform(0, 1, (3, 3))
             result = lhs_nash(W)
-            initial = find_initial_state(result)
+            initial = result[-1]
 
             winrates.append(initial['winrate'][0])
             hero_strategies.append(initial['nash'][0])
@@ -120,7 +103,7 @@ class TestCalibration:
         for _ in range(n_games):
             W = np.random.uniform(0, 1, (2, 2))
             result = lhs_nash(W)
-            initial = find_initial_state(result)
+            initial = result[-1]
             winrates.append(initial['winrate'][0])
             hero_strategies.append(initial['nash'][0])
             opp_strategies.append(initial['nash'][1])
@@ -316,7 +299,7 @@ class TestAsymmetricMatchups:
             [0.5, 0.5, 0.5]
         ])
         result = lhs_nash(W)
-        initial = find_initial_state(result)
+        initial = result[-1]
 
         # Hero should have winrate > 0.5 due to strong deck
         assert initial['winrate'][0] > 0.5
@@ -331,7 +314,7 @@ class TestAsymmetricMatchups:
             [0.5, 0.5, 0.5]
         ])
         result = lhs_nash(W)
-        initial = find_initial_state(result)
+        initial = result[-1]
 
         # Hero should have winrate < 0.5 due to weak deck
         assert initial['winrate'][0] < 0.5

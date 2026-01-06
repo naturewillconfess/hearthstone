@@ -6,11 +6,63 @@ This package calculates optimal mixed strategies for deck selection in competiti
 
 ## Installation
 
-TBA
+```bash
+pip install hearthstone
+```
+
+Or install from source:
+
+```bash
+git clone https://github.com/savakian/hearthstone.git
+cd hearthstone
+pip install .
+```
+
+For development:
+
+```bash
+pip install -e ".[dev]"
+```
 
 ## Quick Start
 
-TBA
+```python
+import numpy as np
+from hearthstone import solve_game, conquest_nash, lhs_nash, ban_nash
+
+# Define a winrate matrix: W[i,j] = P(your deck i beats opponent's deck j)
+W = np.array([
+    [0.55, 0.45, 0.60],
+    [0.50, 0.50, 0.50],
+    [0.40, 0.55, 0.45],
+])
+
+# Solve a single game (find Nash equilibrium)
+result = solve_game(W)
+print(f"Game value: {result['V']:.2%}")
+print(f"Your strategy: {result['hero_sol']}")
+
+# Solve a Conquest match
+conquest = conquest_nash(W)[-1]
+print(f"Conquest winrate: {conquest['winrate'][0]:.2%}")
+
+# Solve a Last Hero Standing match
+lhs = lhs_nash(W)
+initial = [s for s in lhs if s['score'] == ((), ())
+           and s.get('havetoplay_hero') is None][-1]
+print(f"LHS winrate: {initial['winrate'][0]:.2%}")
+
+# Solve a match with bans (4 decks, 1 ban each)
+W4 = np.array([
+    [0.55, 0.45, 0.60, 0.50],
+    [0.50, 0.50, 0.50, 0.55],
+    [0.40, 0.55, 0.45, 0.60],
+    [0.45, 0.50, 0.55, 0.50],
+])
+ban_result = ban_nash(W4, bans=1, match_format='conquest')
+print(f"Winrate after bans: {ban_result['winrate'][0]:.2%}")
+print(f"Optimal ban strategy: {ban_result['bans']['hero']}")
+```
 
 ## Tournament Formats
 

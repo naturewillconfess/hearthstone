@@ -28,7 +28,9 @@ python3 -m pytest src/tests/test_solve_game.py -v
 python3 -c "from hearthstone import conquest_nash; import numpy as np; print(conquest_nash(np.full((3,3), 0.5))[-1]['winrate'])"
 
 # Build documentation (Sphinx)
-make html
+pip install -e ".[docs]"
+cd docs && make html
+# Output in docs/_build/html/
 ```
 
 **Dependencies:** numpy, scipy (installed automatically via pip)
@@ -47,6 +49,13 @@ src/
 │   ├── lhs_nash.py
 │   └── ban_nash.py
 └── tests/             # Test suite
+
+docs/                  # Sphinx documentation
+├── conf.py
+├── index.rst
+├── api/               # API reference
+├── formats/           # Tournament format docs
+└── _build/html/       # Built documentation
 ```
 
 ### Core Components

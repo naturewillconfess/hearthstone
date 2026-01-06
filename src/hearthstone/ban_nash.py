@@ -69,16 +69,17 @@ def ban_nash(W: np.ndarray, bans: int, match_format: str = 'conquest') -> dict:
     -------
     dict
         A dictionary containing:
-        - 'bans': dict with 'hero' and 'opp' np.arrays
-            Mixed strategies over ban combinations (probabilities)
-        - 'winrate': tuple (hero_wr, opp_wr)
-            Expected match win probabilities after optimal banning
-        - 'stratlist': dict with 'hero' and 'opp' lists
-            The actual ban combinations (as tuples of deck indices)
-        - 'matches': list of lists
-            Nested structure where matches[i][j] contains the full match
-            analysis when Hero bans stratlist['hero'][i] and Opponent
-            bans stratlist['opp'][j]
+
+        - ``bans``: dict with 'hero' and 'opp' np.arrays.
+          Mixed strategies over ban combinations (probabilities).
+        - ``winrate``: tuple (hero_wr, opp_wr).
+          Expected match win probabilities after optimal banning.
+        - ``stratlist``: dict with 'hero' and 'opp' lists.
+          The actual ban combinations (as tuples of deck indices).
+        - ``matches``: list of lists.
+          Nested structure where matches[i][j] contains the full match
+          analysis when Hero bans stratlist['hero'][i] and Opponent
+          bans stratlist['opp'][j].
 
     Raises
     ------

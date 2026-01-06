@@ -70,15 +70,16 @@ def conquest_nash(W: np.ndarray) -> list:
     list
         A list of dictionaries, one for each possible game state.
         Each dictionary contains:
-        - 'score': tuple of (hero_won, opp_won) as tuples of deck indices
-            hero_won = decks Hero has eliminated (won with)
-            opp_won = decks Opponent has eliminated
-        - 'winrate': tuple (hero_wr, opp_wr)
-            Expected win probabilities for the match from this state
-        - 'nash': tuple (hero_strategy, opp_strategy) [for non-terminal states]
-            Optimal mixed strategies for deck selection
-        - 'game': np.ndarray [for non-terminal states]
-            Payoff matrix for the deck selection subgame
+
+        - ``score``: tuple of (hero_won, opp_won) as tuples of deck indices.
+          hero_won = decks Hero has eliminated (won with),
+          opp_won = decks Opponent has eliminated.
+        - ``winrate``: tuple (hero_wr, opp_wr).
+          Expected win probabilities for the match from this state.
+        - ``nash``: tuple (hero_strategy, opp_strategy) for non-terminal states.
+          Optimal mixed strategies for deck selection.
+        - ``game``: np.ndarray for non-terminal states.
+          Payoff matrix for the deck selection subgame.
 
         The list is ordered from deepest states (most games played) to
         the initial state (no games played). The last element is the

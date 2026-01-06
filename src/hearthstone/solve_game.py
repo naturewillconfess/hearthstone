@@ -21,47 +21,48 @@ def solve_game(W: np.ndarray) -> dict:
     (p, q) over strategies such that neither player can improve their expected
     payoff by unilaterally changing their strategy.
 
-    Linear Programming Formulation:
-    -------------------------------
-    Hero's optimal mixed strategy is the result of the following LP:
+    Linear Programming Formulation
+    ------------------------------
+    Hero's optimal mixed strategy is the result of the following LP::
 
-    Maximize V
-    Subject to:
-        sum_i W[i,j] * p[i] >= V    for all j (opponent strategies)
-        sum_i p[i] = 1              (probability constraint)
-        p[i] >= 0                   (non-negativity)
+        Maximize V
+        Subject to:
+            sum_i W[i,j] * p[i] >= V    for all j (opponent strategies)
+            sum_i p[i] = 1              (probability constraint)
+            p[i] >= 0                   (non-negativity)
 
-    This means that the Hero maximizes his payoff V conditional on the equilibrium condition - 
-    that given Hero's strategy the Opponent can't use any strategy to get a worse outcome for Hero
+    This means that the Hero maximizes his payoff V conditional on the equilibrium
+    condition - that given Hero's strategy the Opponent can't use any strategy to
+    get a worse outcome for Hero.
 
-    For Opponent the LP is:
+    For Opponent the LP is::
 
-
-    Minimize V
-    Subject to:
-        sum_j W[i,j] * q[j] <= V    for all i (Hero strategies)
-        sum_j q[j] = 1              (probability constraint)
-        q[j] >= 0                   (non-negativity)
+        Minimize V
+        Subject to:
+            sum_j W[i,j] * q[j] <= V    for all i (Hero strategies)
+            sum_j q[j] = 1              (probability constraint)
+            q[j] >= 0                   (non-negativity)
 
     Parameters
     ----------
     W : np.ndarray
-        Winrate/payoff matrix of shape (m, n) where:
-        - m = number of Hero's strategies (rows)
-        - n = number of Opponent's strategies (columns)
-        - W[i,j] = Hero's payoff (or win probability) when Hero plays i
-                   and Opponent plays j
+        Winrate/payoff matrix of shape (m, n) where
+        m = number of Hero's strategies (rows),
+        n = number of Opponent's strategies (columns), and
+        W[i,j] = Hero's payoff (or win probability) when Hero plays i
+        and Opponent plays j.
 
     Returns
     -------
     dict
         A dictionary containing:
-        - 'hero_sol': np.ndarray of shape (m,)
-            Hero's optimal mixed strategy (probability distribution over rows)
-        - 'opp_sol': np.ndarray of shape (n,)
-            Opponent's optimal mixed strategy (probability distribution over columns)
-        - 'V': float
-            The value of the game (Hero's expected payoff under Nash equilibrium), Hero's winrate
+
+        - ``hero_sol``: np.ndarray of shape (m,).
+          Hero's optimal mixed strategy (probability distribution over rows).
+        - ``opp_sol``: np.ndarray of shape (n,).
+          Opponent's optimal mixed strategy (probability distribution over columns).
+        - ``V``: float.
+          The value of the game (Hero's expected payoff under Nash equilibrium).
 
     Examples
     --------

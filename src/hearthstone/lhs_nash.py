@@ -62,19 +62,20 @@ def lhs_nash(W: np.ndarray) -> list:
     list
         A list of dictionaries, one for each possible game state.
         Each dictionary contains:
-        - 'score': tuple of (hero_lost, opp_lost) as tuples of deck indices
-            hero_lost = decks Hero has lost with (eliminated)
-            opp_lost = decks Opponent has lost with (eliminated)
-        - 'havetoplay_hero': int or None
-            The deck Hero must play (if they won the previous game)
-        - 'havetoplay_opp': int or None
-            The deck Opponent must play (if they won the previous game)
-        - 'winrate': tuple (hero_wr, opp_wr)
-            Expected win probabilities for the match from this state
-        - 'nash': tuple (hero_strategy, opp_strategy) [for non-terminal states]
-            Optimal mixed strategies for deck selection
-        - 'game': np.ndarray [for non-terminal states]
-            Payoff matrix for the deck selection subgame
+
+        - ``score``: tuple of (hero_lost, opp_lost) as tuples of deck indices.
+          hero_lost = decks Hero has lost with (eliminated),
+          opp_lost = decks Opponent has lost with (eliminated).
+        - ``havetoplay_hero``: int or None.
+          The deck Hero must play (if they won the previous game).
+        - ``havetoplay_opp``: int or None.
+          The deck Opponent must play (if they won the previous game).
+        - ``winrate``: tuple (hero_wr, opp_wr).
+          Expected win probabilities for the match from this state.
+        - ``nash``: tuple (hero_strategy, opp_strategy) for non-terminal states.
+          Optimal mixed strategies for deck selection.
+        - ``game``: np.ndarray for non-terminal states.
+          Payoff matrix for the deck selection subgame.
 
         The list is ordered from deepest states (most games played) to
         the initial state (no games played).
@@ -86,9 +87,7 @@ def lhs_nash(W: np.ndarray) -> list:
     >>> W = np.array([[0.5, 0.5], [0.5, 0.5]])
     >>> result = lhs_nash(W)
     >>> # Find initial state (no losses, no forced plays)
-    >>> initial = [r for r in result if r['score'] == ((), ())
-    ...            and r.get('havetoplay_hero') is None
-    ...            and r.get('havetoplay_opp') is None][-1]
+    >>> initial = result[-1]
     >>> print(f"Match winrate: {initial['winrate'][0]:.4f}")
 
     """

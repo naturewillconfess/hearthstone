@@ -19,3 +19,8 @@ build/
 .Python
 env/
 venv/
+.venv/
+
+# Sphinx documentation
+docs/_build/
+.DS_store
