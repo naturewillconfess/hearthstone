@@ -4,23 +4,6 @@ conquest_nash.py - Nash equilibrium calculator for Hearthstone Conquest format
 This module computes subgame-perfect Nash equilibria for the Conquest tournament
 format used in competitive Hearthstone.
 
-Conquest Format Rules:
-----------------------
-1. Each player brings n decks to the match
-2. Before each game, both players simultaneously choose which deck to play
-3. The winner's deck is "eliminated" (cannot be used again)
-4. The loser keeps their deck and can play it in future games
-5. The first player to eliminate all their decks wins the match
-
-Key Insight:
------------
-In Conquest, each game is a subgame that depends on which decks have been
-eliminated so far. We use backward induction to solve:
-1. Start from terminal states (one player has eliminated all decks)
-2. Work backwards, computing Nash equilibria for each possible game state
-3. The payoff for a non-terminal state depends on the win/loss outcomes,
-   which lead to previously-computed subgame values
-
 Algorithm:
 ----------
 1. Generate all possible game states (combinations of eliminated decks)
@@ -43,16 +26,20 @@ The match winner is the first to eliminate ALL their decks.
 
 import numpy as np
 from itertools import combinations
+from typing import List, Optional, Tuple
 from .solve_game import solve_game
+from .results import ConquestResult
 
 
-def conquest_nash(W: np.ndarray) -> list:
+def conquest_nash(W: np.ndarray,
+                  deck_names: Optional[List[str]] = None) -> ConquestResult:
     """
     Find Nash equilibrium for all subgames in a Conquest match.
 
     This function analyzes a Conquest match by computing optimal play
     (Nash equilibrium in mixed strategies) for every possible game state.
     The result allows determining:
+
     - Overall match win probability from the start
     - Optimal deck selection probabilities at any point in the match
     - Win probabilities from any game state
@@ -61,50 +48,54 @@ def conquest_nash(W: np.ndarray) -> list:
     ----------
     W : np.ndarray
         Square winrate matrix of shape (n, n) where:
+
         - n = number of decks per player
         - W[i,j] = probability that Hero's deck i beats Opponent's deck j
         - Values should be between 0 and 1
 
+    deck_names : list of str, optional
+        Names for each deck. Default: ['Deck 0', 'Deck 1', ...].
+
     Returns
     -------
-    list
-        A list of dictionaries, one for each possible game state.
-        Each dictionary contains:
+    ConquestResult
+        Result object with easy access to match analysis:
 
-        - ``score``: tuple of (hero_won, opp_won) as tuples of deck indices.
-          hero_won = decks Hero has eliminated (won with),
-          opp_won = decks Opponent has eliminated.
-        - ``winrate``: tuple (hero_wr, opp_wr).
-          Expected win probabilities for the match from this state.
-        - ``nash``: tuple (hero_strategy, opp_strategy) for non-terminal states.
-          Optimal mixed strategies for deck selection.
-        - ``game``: np.ndarray for non-terminal states.
-          Payoff matrix for the deck selection subgame.
-
-        The list is ordered from deepest states (most games played) to
-        the initial state (no games played). The last element is the
-        initial state with the overall match analysis.
+        - ``winrate``: Hero's match winrate from initial state
+        - ``hero_strategy``: Hero's optimal initial deck selection
+        - ``opp_strategy``: Opponent's optimal initial deck selection
+        - ``get_state(hero_won, opp_won)``: Get any mid-match state
+        - ``all_states()``: Get all states for advanced analysis
 
     Examples
     --------
     >>> import numpy as np
     >>> # Simple 2-deck match with equal matchups
     >>> W = np.array([[0.5, 0.5], [0.5, 0.5]])
-    >>> result = conquest_nash(W)
-    >>> initial_state = result[-1]  # Last element is initial state
-    >>> print(f"Match winrate: {initial_state['winrate'][0]:.4f}")
-    Match winrate: 0.5000
+    >>> result = conquest_nash(W, deck_names=['Aggro', 'Control'])
+    >>> print(f"Match winrate: {result.winrate:.1%}")
+    Match winrate: 50.0%
 
-    >>> # Asymmetric matchups
-    >>> W = np.array([[0.6, 0.4], [0.4, 0.6]])
-    >>> result = conquest_nash(W)
-    >>> print(f"Optimal deck selection: {result[-1]['nash'][0]}")
+    >>> # View optimal strategy
+    >>> print(result.hero_strategy)
+    [('Aggro', 0.5), ('Control', 0.5)]
 
+    >>> # Check mid-match state after Hero won with Aggro
+    >>> state = result.get_state(hero_won=['Aggro'])
+    >>> print(f"Winrate from this state: {state.winrate:.1%}")
     """
-    # Convert input to numpy array and validate
     W = np.asarray(W, dtype=float)
-    n = W.shape[0]  # Number of decks per player
+    n = W.shape[0]
 
+    # Default deck names
+    if deck_names is None:
+        deck_names = [f"Deck {i}" for i in range(n)]
+
+    # Validate deck names
+    if len(deck_names) != n:
+        raise ValueError(f"deck_names has {len(deck_names)} elements, expected {n}")
+
+    # Compute all states
     # =========================================================================
     # STEP 1: GENERATE ALL POSSIBLE GAME STATES
     # =========================================================================
@@ -273,7 +264,7 @@ def conquest_nash(W: np.ndarray) -> list:
                     G[idx_h, idx_o] = W[h, o] * win_value + (1 - W[h, o]) * lose_value
 
             # Solve the deck selection game to find Nash equilibrium
-            solution = solve_game(G)
+            solution = _solve_game_internal(G)
 
             V = solution['V']
             V_opp = 1.0 - V
@@ -284,6 +275,16 @@ def conquest_nash(W: np.ndarray) -> list:
 
         # Store result for lookup by future states
         state_results[(hero_won, opp_won)] = result
-        results_list.append(result)
 
-    return results_list
+        new_state = ConquestStateSolution(
+            hero_won = result['score'][0],
+            opp_won = result['score'][1],
+            winrate = result['winrate'],
+            hero_probs = result['nash'][0],
+            opp_probs = result['nash'][1],
+            hero_names=hero_names,
+            opp_names=opp_names
+            )
+        results_list.append(new_state)
+
+    return ConquestResult(results_list, deck_names)

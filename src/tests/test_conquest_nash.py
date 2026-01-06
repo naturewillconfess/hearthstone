@@ -8,14 +8,6 @@ from hearthstone import conquest_nash
 n_games = 200
 tolerance = 0.05
 
-# Helper function to find a specific state
-def find_state(result, hero_elim, opp_elim):
-    """Find the state where hero eliminated hero_elim and opp eliminated opp_elim."""
-    for state in result:
-        if (set(state['score'][0]) == set(hero_elim) and
-            set(state['score'][1]) == set(opp_elim)):
-            return state
-    return None
 
 def two_v_two_conquest(W):
     expected = (
@@ -24,6 +16,11 @@ def two_v_two_conquest(W):
                 W[1,0]*W[0,0]*W[0,1] - W[1,0]*W[0,1]*W[1,1]
             ) / 2
     return expected
+
+
+def get_probs(strategy):
+    """Extract probabilities from strategy list of tuples."""
+    return np.array([prob for _, prob in strategy])
 
 
 class TestSymmetricConquest:
@@ -39,29 +36,22 @@ class TestSymmetricConquest:
         W = np.full((3, 3), 0.5)
         result = conquest_nash(W)
 
-        # Get the initial state (last element in the list)
-        initial_state = result[-1]
-
         # Match should be 50/50
-        assert initial_state['winrate'][0] == pytest.approx(0.5, abs=1e-6), f"Hero winrate mismatch. Actual: {initial_state['winrate'][0]}, Expected: 0.5"
-        assert initial_state['winrate'][1] == pytest.approx(0.5, abs=1e-6), f"Opp winrate mismatch. Actual: {initial_state['winrate'][1]}, Expected: 0.5"
+        assert result.winrate == pytest.approx(0.5, abs=1e-6), f"Hero winrate mismatch. Actual: {result.winrate}, Expected: 0.5"
 
     def test_2x2_symmetric(self):
         """Test a 2x2 symmetric Conquest match (BO3 style)."""
         W = np.full((2, 2), 0.5)
         result = conquest_nash(W)
-        initial_state = result[-1]
 
-        assert initial_state['winrate'][0] == pytest.approx(0.5, abs=1e-6), f"Hero winrate mismatch. Actual: {initial_state['winrate'][0]}, Expected: 0.5"
-        assert initial_state['winrate'][1] == pytest.approx(0.5, abs=1e-6), f"Opp winrate mismatch. Actual: {initial_state['winrate'][1]}, Expected: 0.5"
+        assert result.winrate == pytest.approx(0.5, abs=1e-6), f"Hero winrate mismatch. Actual: {result.winrate}, Expected: 0.5"
 
     def test_4x4_symmetric(self):
         """Test a 4x4 symmetric Conquest match (BO7 style)."""
         W = np.full((4, 4), 0.5)
         result = conquest_nash(W)
-        initial_state = result[-1]
 
-        assert initial_state['winrate'][0] == pytest.approx(0.5, abs=1e-6), f"Hero winrate mismatch. Actual: {initial_state['winrate'][0]}, Expected: 0.5"
+        assert result.winrate == pytest.approx(0.5, abs=1e-6), f"Hero winrate mismatch. Actual: {result.winrate}, Expected: 0.5"
 
 
 class TestMinimalConquest:
@@ -73,10 +63,9 @@ class TestMinimalConquest:
         """1x1 Conquest with biased winrate."""
         W = np.array([[0.7]])
         result = conquest_nash(W)
-        initial_state = result[-1]
 
         # With one deck each, match winrate equals single game winrate
-        assert initial_state['winrate'][0] == pytest.approx(0.7, abs=1e-6), f"Hero winrate mismatch. Actual: {initial_state['winrate'][0]}, Expected: 0.7"
+        assert result.winrate == pytest.approx(0.7, abs=1e-6), f"Hero winrate mismatch. Actual: {result.winrate}, Expected: 0.7"
 
 
 class TestCalibration:
@@ -101,11 +90,10 @@ class TestCalibration:
         for _ in range(n_games):
             W = np.random.uniform(0, 1, (3, 3))
             result = conquest_nash(W)
-            initial = result[-1]
 
-            winrates.append(initial['winrate'][0])
-            hero_strategies.append(initial['nash'][0])
-            opp_strategies.append(initial['nash'][1])
+            winrates.append(result.winrate)
+            hero_strategies.append(get_probs(result.hero_strategy))
+            opp_strategies.append(get_probs(result.opp_strategy))
 
         mean_winrate = np.mean(winrates)
         mean_hero = np.mean(hero_strategies, axis=0)
@@ -126,11 +114,10 @@ class TestCalibration:
         for _ in range(n_games):
             W = np.random.uniform(0, 1, (2, 2))
             result = conquest_nash(W)
-            initial = result[-1]
 
-            winrates.append(initial['winrate'][0])
-            hero_strategies.append(initial['nash'][0])
-            opp_strategies.append(initial['nash'][1])
+            winrates.append(result.winrate)
+            hero_strategies.append(get_probs(result.hero_strategy))
+            opp_strategies.append(get_probs(result.opp_strategy))
 
         mean_winrate = np.mean(winrates)
         mean_hero = np.mean(hero_strategies, axis=0)
@@ -155,10 +142,9 @@ class TestBO3Formula:
         for _ in range(20):
             W = np.random.uniform(0.2, 0.8, (2, 2))
             result = conquest_nash(W)
-            initial = result[-1]
 
             expected = two_v_two_conquest(W)
-            assert initial['winrate'][0] == pytest.approx(expected, abs=1e-6), f"Winrate mismatch. Actual: {initial['winrate'][0]}, Expected: {expected}"
+            assert result.winrate == pytest.approx(expected, abs=1e-6), f"Winrate mismatch. Actual: {result.winrate}, Expected: {expected}"
 
 
 class TestBO5Formulas:
@@ -182,24 +168,23 @@ class TestBO5Formulas:
         # State (0, 1) vs (): Hero eliminated decks 0 and 1, only deck 2 remains
         # Opponent has all decks. Hero wins if deck 2 beats all 3 opponent decks.
         # P(win) = 1 - (1-W[2,0])*(1-W[2,1])*(1-W[2,2])
-        state_12 = find_state(result, (0, 1), ())
+        state_12 = result.get_state(hero_won=[0, 1], opp_won=[])
         expected_12 = 1 - (1-W[2,0])*(1-W[2,1])*(1-W[2,2])
-        assert state_12['winrate'][0] == pytest.approx(expected_12, abs=1e-6), f"State (0,1) vs () winrate mismatch. Actual: {state_12['winrate'][0]}, Expected: {expected_12}"
+        assert state_12.winrate == pytest.approx(expected_12, abs=1e-6), f"State (0,1) vs () winrate mismatch. Actual: {state_12.winrate}, Expected: {expected_12}"
 
         # State (0,2) vs (): Hero has only deck 1, opponent has all
-        state_02 = find_state(result, (0, 2), ())
+        state_02 = result.get_state(hero_won=[0, 2], opp_won=[])
         expected_02 = 1 - (1-W[1,0])*(1-W[1,1])*(1-W[1,2])
-        assert state_02['winrate'][0] == pytest.approx(expected_02, abs=1e-6), f"State (0,2) vs () winrate mismatch. Actual: {state_02['winrate'][0]}, Expected: {expected_02}"
+        assert state_02.winrate == pytest.approx(expected_02, abs=1e-6), f"State (0,2) vs () winrate mismatch. Actual: {state_02.winrate}, Expected: {expected_02}"
 
         # State (0,) vs (0,): Hero eliminated deck 0, Opp eliminated deck 0
         # Hero has decks 1,2 vs Opp decks 1,2
         # This is a 2v2 subgame with the reduced matrix W[1:3, 1:3]
-        state_0_0 = find_state(result, (0,), (0,))
+        state_0_0 = result.get_state(hero_won=[0], opp_won=[0])
         W_sub = W[1:3, 1:3]  # Submatrix for remaining decks
         # Use the BO3 formula on the submatrix
-        w = W_sub
-        expected_0_0 = two_v_two_conquest(w)
-        assert state_0_0['winrate'][0] == pytest.approx(expected_0_0, abs=1e-6), f"State (0,) vs (0,) winrate mismatch. Actual: {state_0_0['winrate'][0]}, Expected: {expected_0_0}"
+        expected_0_0 = two_v_two_conquest(W_sub)
+        assert state_0_0.winrate == pytest.approx(expected_0_0, abs=1e-6), f"State (0,) vs (0,) winrate mismatch. Actual: {state_0_0.winrate}, Expected: {expected_0_0}"
 
 
 class TestGamePayoffMatrix:
@@ -211,13 +196,15 @@ class TestGamePayoffMatrix:
         """Verify all entries of the initial state payoff matrix."""
         W = np.random.uniform(0, 1, (3, 3))
         result = conquest_nash(W)
-        initial = result[-1]
+
+        # Access raw state for payoff matrix
+        initial = result._states[-1]
 
         for i in range(3):
             for j in range(3):
-                win_state = find_state(result, (i,), ())
-                lose_state = find_state(result, (), (j,))
-                expected = W[i,j] * win_state['winrate'][0] + (1-W[i,j]) * lose_state['winrate'][0]
+                win_state = result.get_state(hero_won=[i], opp_won=[])
+                lose_state = result.get_state(hero_won=[], opp_won=[j])
+                expected = W[i,j] * win_state.winrate + (1-W[i,j]) * lose_state.winrate
                 assert initial['game'][i,j] == pytest.approx(expected, abs=1e-6), f"Payoff G[{i},{j}] mismatch. Actual: {initial['game'][i,j]}, Expected: {expected}"
 
 
@@ -244,7 +231,7 @@ class TestStateCount:
         result = conquest_nash(W)
 
         # For n=2: 4 * 4 - 1 = 15 states
-        assert len(result) == 15
+        assert len(result.all_states()) == 15
 
     def test_3x3_state_count(self):
         """
@@ -259,7 +246,7 @@ class TestStateCount:
         result = conquest_nash(W)
 
         # For n=3: 8 * 8 - 1 = 63 states
-        assert len(result) == 63
+        assert len(result.all_states()) == 63
 
 
 class TestAsymmetricMatchups:
@@ -281,10 +268,9 @@ class TestAsymmetricMatchups:
             [0.5, 0.5, 0.5]
         ])
         result = conquest_nash(W)
-        initial = result[-1]
 
         # Hero should have winrate > 0.5 due to strong deck
-        assert initial['winrate'][0] > 0.5
+        assert result.winrate > 0.5
 
     def test_weak_deck(self):
         """
@@ -297,10 +283,9 @@ class TestAsymmetricMatchups:
             [0.5, 0.5, 0.5]
         ])
         result = conquest_nash(W)
-        initial = result[-1]
 
         # Hero should have winrate < 0.5 due to weak deck
-        assert initial['winrate'][0] < 0.5
+        assert result.winrate < 0.5
 
     def test_counter_matchups(self):
         """
@@ -315,13 +300,13 @@ class TestAsymmetricMatchups:
             [0.8, 0.2, 0.5]   # Deck 2 beats 0, loses to 1
         ])
         result = conquest_nash(W)
-        initial = result[-1]
 
         # Should be near 50/50 due to symmetry
-        assert initial['winrate'][0] == pytest.approx(0.5, abs=0.1), f"Hero winrate mismatch. Actual: {initial['winrate'][0]}, Expected: ~0.5"
+        assert result.winrate == pytest.approx(0.5, abs=0.1), f"Hero winrate mismatch. Actual: {result.winrate}, Expected: ~0.5"
 
         # Strategies should be mixed (no pure strategy dominates)
-        assert all(p > 0.1 for p in initial['nash'][0])
+        hero_probs = get_probs(result.hero_strategy)
+        assert all(p > 0.1 for p in hero_probs)
 
 
 class TestTerminalStates:
@@ -334,14 +319,13 @@ class TestTerminalStates:
         W = np.full((2, 2), 0.5)
         result = conquest_nash(W)
 
-        # Find state where hero has eliminated both decks
-        for state in result:
-            if state['score'][0] == (0, 1):  # Hero eliminated both
-                assert state['winrate'][0] == pytest.approx(1.0, abs=1e-6), f"Hero winrate should be 1.0 when hero wins. Actual: {state['winrate'][0]}"
-                assert state['winrate'][1] == pytest.approx(0.0, abs=1e-6), f"Opp winrate should be 0.0 when hero wins. Actual: {state['winrate'][1]}"
-            if state['score'][1] == (0, 1):  # Opp eliminated both
-                assert state['winrate'][0] == pytest.approx(0.0, abs=1e-6), f"Hero winrate should be 0.0 when opp wins. Actual: {state['winrate'][0]}"
-                assert state['winrate'][1] == pytest.approx(1.0, abs=1e-6), f"Opp winrate should be 1.0 when opp wins. Actual: {state['winrate'][1]}"
+        # Check state where hero has eliminated both decks
+        hero_wins = result.get_state(hero_won=[0, 1], opp_won=[])
+        assert hero_wins.winrate == pytest.approx(1.0, abs=1e-6), f"Hero winrate should be 1.0 when hero wins. Actual: {hero_wins.winrate}"
+
+        # Check state where opponent has eliminated both decks
+        opp_wins = result.get_state(hero_won=[], opp_won=[0, 1])
+        assert opp_wins.winrate == pytest.approx(0.0, abs=1e-6), f"Hero winrate should be 0.0 when opp wins. Actual: {opp_wins.winrate}"
 
 
 if __name__ == '__main__':

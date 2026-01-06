@@ -34,12 +34,15 @@ Algorithm:
 
 import numpy as np
 from itertools import combinations
-from .solve_game import solve_game
-from .conquest_nash import conquest_nash
-from .lhs_nash import lhs_nash
+from typing import List, Optional
+from .solve_game import _solve_game_internal
+from .conquest_nash import _conquest_nash_internal
+from .lhs_nash import _lhs_nash_internal
+from .results import BanResult
 
 
-def ban_nash(W: np.ndarray, bans: int, match_format: str = 'conquest') -> dict:
+def ban_nash(W: np.ndarray, bans: int, match_format: str = 'conquest',
+             deck_names: Optional[List[str]] = None) -> BanResult:
     """
     Find optimal ban strategy for a tournament match.
 
@@ -52,6 +55,7 @@ def ban_nash(W: np.ndarray, bans: int, match_format: str = 'conquest') -> dict:
     ----------
     W : np.ndarray
         Square winrate matrix of shape (n, n) where:
+
         - n = number of decks per player (before bans)
         - W[i,j] = probability that Hero's deck i beats Opponent's deck j
         - Values should be between 0 and 1
@@ -61,25 +65,25 @@ def ban_nash(W: np.ndarray, bans: int, match_format: str = 'conquest') -> dict:
 
     match_format : str, optional
         The format for the main match after bans:
+
         - 'conquest': Conquest format (winner's deck eliminated)
         - 'lhs': Last Hero Standing format (loser's deck eliminated)
+
         Default is 'conquest'.
+
+    deck_names : list of str, optional
+        Names for each deck. Default: ['Deck 0', 'Deck 1', ...].
 
     Returns
     -------
-    dict
-        A dictionary containing:
+    BanResult
+        Result object with easy access to ban analysis:
 
-        - ``bans``: dict with 'hero' and 'opp' np.arrays.
-          Mixed strategies over ban combinations (probabilities).
-        - ``winrate``: tuple (hero_wr, opp_wr).
-          Expected match win probabilities after optimal banning.
-        - ``stratlist``: dict with 'hero' and 'opp' lists.
-          The actual ban combinations (as tuples of deck indices).
-        - ``matches``: list of lists.
-          Nested structure where matches[i][j] contains the full match
-          analysis when Hero bans stratlist['hero'][i] and Opponent
-          bans stratlist['opp'][j].
+        - ``winrate``: Hero's expected winrate after optimal banning
+        - ``hero_ban_strategy``: Hero's optimal ban selection
+        - ``opp_ban_strategy``: Opponent's optimal ban selection
+        - ``get_match(hero_bans, opp_bans)``: Get match analysis for
+          specific ban choices
 
     Raises
     ------
@@ -96,11 +100,14 @@ def ban_nash(W: np.ndarray, bans: int, match_format: str = 'conquest') -> dict:
     ...     [0.6, 0.5, 0.5, 0.4],
     ...     [0.5, 0.4, 0.6, 0.5]
     ... ])
-    >>> result = ban_nash(W, bans=1, match_format='conquest')
-    >>> print(f"Win probability: {result['winrate'][0]:.4f}")
-    >>> print(f"Ban strategy: {result['bans']['hero']}")
-    >>> print(f"Ban options: {result['stratlist']['hero']}")
+    >>> result = ban_nash(W, bans=1, match_format='conquest',
+    ...                   deck_names=['Aggro', 'Combo', 'Control', 'Midrange'])
+    >>> print(f"Win probability: {result.winrate:.1%}")
+    >>> print(result.hero_ban_strategy)
 
+    >>> # Get detailed match analysis if Hero bans Combo, Opp bans Aggro
+    >>> match = result.get_match(hero_bans=['Combo'], opp_bans=['Aggro'])
+    >>> print(match)
     """
     # Validate inputs
     W = np.asarray(W, dtype=float)
@@ -111,6 +118,14 @@ def ban_nash(W: np.ndarray, bans: int, match_format: str = 'conquest') -> dict:
     if bans >= n:
         raise ValueError(f"Too many bans ({bans}) for {n} decks")
 
+    # Default deck names
+    if deck_names is None:
+        deck_names = [f"Deck {i}" for i in range(n)]
+
+    # Validate deck names
+    if len(deck_names) != n:
+        raise ValueError(f"deck_names has {len(deck_names)} elements, expected {n}")
+
     # Validate match format
     valid_formats = {'conquest', 'lhs'}
     if match_format.lower() not in valid_formats:
@@ -119,9 +134,9 @@ def ban_nash(W: np.ndarray, bans: int, match_format: str = 'conquest') -> dict:
 
     # Select the appropriate Nash calculator based on format
     if match_format == 'conquest':
-        nash_fn = conquest_nash
+        nash_fn = _conquest_nash_internal
     else:  # lhs
-        nash_fn = lhs_nash
+        nash_fn = _lhs_nash_internal
 
 
     # Generate all C(n, bans) combinations for each player
@@ -172,6 +187,9 @@ def ban_nash(W: np.ndarray, bans: int, match_format: str = 'conquest') -> dict:
             # Run the match analysis on the reduced matrix
             match_result = nash_fn(W_reduced)
 
+            # Store the full match result for later retrieval
+            matches[i][j] = match_result
+
             # The last element contains the initial state (empty score)
             # Its winrate gives us the overall match probability
             initial_state = match_result[-1]
@@ -179,16 +197,25 @@ def ban_nash(W: np.ndarray, bans: int, match_format: str = 'conquest') -> dict:
 
             G[i, j] = hero_winrate
 
-    solution = solve_game(G)
+    solution = _solve_game_internal(G)
 
     hero_ban_strategy = solution['hero_sol']
     opp_ban_strategy = solution['opp_sol']
     overall_winrate = solution['V']
 
-    return {
+    raw_result = {
         'bans': {
             'hero': hero_ban_strategy,
             'opp': opp_ban_strategy
         },
         'winrate': (overall_winrate, 1.0 - overall_winrate)
     }
+
+    return BanResult(
+        raw_result=raw_result,
+        deck_names=deck_names,
+        match_format=match_format,
+        matches=matches,
+        stratlist_hero=hero_ban_options,
+        stratlist_opp=opp_ban_options
+    )

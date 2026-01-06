@@ -5,8 +5,15 @@ import pytest
 
 from hearthstone import lhs_nash, conquest_nash
 
-n_games = 200  
+
+n_games = 200
 tolerance = 0.05
+
+
+def get_probs(strategy):
+    """Extract probabilities from strategy list of tuples."""
+    return np.array([prob for _, prob in strategy])
+
 
 class TestSymmetricLHS:
     """
@@ -17,28 +24,23 @@ class TestSymmetricLHS:
         """Test a basic 3x3 symmetric LHS match."""
         W = np.full((3, 3), 0.5)
         result = lhs_nash(W)
-        initial = result[-1]
 
         # Match should be 50/50
-        assert initial['winrate'][0] == pytest.approx(0.5, abs=1e-6), f"Hero winrate mismatch. Actual: {initial['winrate'][0]}, Expected: 0.5"
-        assert initial['winrate'][1] == pytest.approx(0.5, abs=1e-6), f"Opp winrate mismatch. Actual: {initial['winrate'][1]}, Expected: 0.5"
+        assert result.winrate == pytest.approx(0.5, abs=1e-6), f"Hero winrate mismatch. Actual: {result.winrate}, Expected: 0.5"
 
     def test_2x2_symmetric(self):
         """Test a 2x2 symmetric LHS match."""
         W = np.full((2, 2), 0.5)
         result = lhs_nash(W)
-        initial = result[-1]
 
-        assert initial['winrate'][0] == pytest.approx(0.5, abs=1e-6), f"Hero winrate mismatch. Actual: {initial['winrate'][0]}, Expected: 0.5"
-        assert initial['winrate'][1] == pytest.approx(0.5, abs=1e-6), f"Opp winrate mismatch. Actual: {initial['winrate'][1]}, Expected: 0.5"
+        assert result.winrate == pytest.approx(0.5, abs=1e-6), f"Hero winrate mismatch. Actual: {result.winrate}, Expected: 0.5"
 
     def test_4x4_symmetric(self):
         """Test a 4x4 symmetric LHS match."""
         W = np.full((4, 4), 0.5)
         result = lhs_nash(W)
-        initial = result[-1]
 
-        assert initial['winrate'][0] == pytest.approx(0.5, abs=1e-6), f"Hero winrate mismatch. Actual: {initial['winrate'][0]}, Expected: 0.5"
+        assert result.winrate == pytest.approx(0.5, abs=1e-6), f"Hero winrate mismatch. Actual: {result.winrate}, Expected: 0.5"
 
 
 class TestMinimalLHS:
@@ -50,10 +52,9 @@ class TestMinimalLHS:
         """1x1 LHS with biased winrate."""
         W = np.array([[0.7]])
         result = lhs_nash(W)
-        initial = result[-1]
 
         # With one deck each, match winrate equals single game winrate
-        assert initial['winrate'][0] == pytest.approx(0.7, abs=1e-6), f"Hero winrate mismatch. Actual: {initial['winrate'][0]}, Expected: 0.7"
+        assert result.winrate == pytest.approx(0.7, abs=1e-6), f"Hero winrate mismatch. Actual: {result.winrate}, Expected: 0.7"
 
 
 class TestCalibration:
@@ -77,11 +78,10 @@ class TestCalibration:
         for _ in range(n_games):
             W = np.random.uniform(0, 1, (3, 3))
             result = lhs_nash(W)
-            initial = result[-1]
 
-            winrates.append(initial['winrate'][0])
-            hero_strategies.append(initial['nash'][0])
-            opp_strategies.append(initial['nash'][1])
+            winrates.append(result.winrate)
+            hero_strategies.append(get_probs(result.hero_strategy))
+            opp_strategies.append(get_probs(result.opp_strategy))
 
         mean_winrate = np.mean(winrates)
         mean_hero = np.mean(hero_strategies, axis=0)
@@ -103,10 +103,10 @@ class TestCalibration:
         for _ in range(n_games):
             W = np.random.uniform(0, 1, (2, 2))
             result = lhs_nash(W)
-            initial = result[-1]
-            winrates.append(initial['winrate'][0])
-            hero_strategies.append(initial['nash'][0])
-            opp_strategies.append(initial['nash'][1])
+
+            winrates.append(result.winrate)
+            hero_strategies.append(get_probs(result.hero_strategy))
+            opp_strategies.append(get_probs(result.opp_strategy))
 
         mean_winrate = np.mean(winrates)
         mean_hero = np.mean(hero_strategies, axis=0)
@@ -133,8 +133,11 @@ class TestLHSSpecificBehavior:
         W = np.full((3, 3), 0.5)
         result = lhs_nash(W)
 
+        # Access raw states to check forced play
+        raw_states = result._states
+
         # Should have some states with forced plays
-        forced_states = [s for s in result
+        forced_states = [s for s in raw_states
                         if s.get('havetoplay_hero') is not None or
                            s.get('havetoplay_opp') is not None]
 
@@ -147,8 +150,10 @@ class TestLHSSpecificBehavior:
         W = np.full((3, 3), 0.5)
         result = lhs_nash(W)
 
+        raw_states = result._states
+
         # Find a state where Hero is forced to play
-        hero_forced = [s for s in result if s.get('havetoplay_hero') is not None]
+        hero_forced = [s for s in raw_states if s.get('havetoplay_hero') is not None]
 
         assert len(hero_forced) > 0, "Should have states where Hero is forced"
 
@@ -166,8 +171,10 @@ class TestLHSSpecificBehavior:
         W = np.full((3, 3), 0.5)
         result = lhs_nash(W)
 
+        raw_states = result._states
+
         # Find a state where Opponent is forced to play
-        opp_forced = [s for s in result if s.get('havetoplay_opp') is not None]
+        opp_forced = [s for s in raw_states if s.get('havetoplay_opp') is not None]
 
         assert len(opp_forced) > 0, "Should have states where Opponent is forced"
 
@@ -187,9 +194,11 @@ class TestLHSSpecificBehavior:
         W = np.full((3, 3), 0.5)
         result = lhs_nash(W)
 
+        raw_states = result._states
+
         # States with hero_lost=(), opp_lost=(0,) should have hero forced
         # to one of the 3 available decks
-        states_0_vs_1 = [s for s in result
+        states_0_vs_1 = [s for s in raw_states
                         if s['score'] == ((), (0,)) and
                            s.get('havetoplay_hero') is not None]
 
@@ -209,9 +218,11 @@ class TestTerminalStates:
         W = np.full((2, 2), 0.5)
         result = lhs_nash(W)
 
+        raw_states = result._states
+
         # Find state where opponent has lost all decks
         # In LHS, score tracks lost decks, so opp_lost = (0, 1) for 2 decks
-        hero_wins = [s for s in result if len(s['score'][1]) == 2]
+        hero_wins = [s for s in raw_states if len(s['score'][1]) == 2]
 
         for state in hero_wins:
             assert state['winrate'][0] == pytest.approx(1.0, abs=1e-6), f"Hero winrate should be 1.0 when hero wins. Actual: {state['winrate'][0]}"
@@ -224,8 +235,10 @@ class TestTerminalStates:
         W = np.full((2, 2), 0.5)
         result = lhs_nash(W)
 
+        raw_states = result._states
+
         # Find state where hero has lost all decks
-        opp_wins = [s for s in result if len(s['score'][0]) == 2]
+        opp_wins = [s for s in raw_states if len(s['score'][0]) == 2]
 
         for state in opp_wins:
             assert state['winrate'][0] == pytest.approx(0.0, abs=1e-6), f"Hero winrate should be 0.0 when opp wins. Actual: {state['winrate'][0]}"
@@ -241,9 +254,11 @@ class TestTerminalStates:
         W = np.random.uniform(0, 1, (3, 3))
         result = lhs_nash(W)
 
+        raw_states = result._states
+
         # Find state: hero lost {0, 1}, opp lost nothing
         # Hero has only deck 2 left
-        for state in result:
+        for state in raw_states:
             if state['score'] == ((0, 1), ()):
                 # Hero wins if deck 2 beats all 3 opponent decks
                 expected = W[2, 0] * W[2, 1] * W[2, 2]
@@ -270,11 +285,8 @@ class TestComparisonWithConquest:
             lhs_result = lhs_nash(W)
             conquest_result = conquest_nash(W)
 
-            lhs_initial = find_initial_state(lhs_result)
-            conquest_initial = conquest_result[-1]
-
-            lhs_wr = lhs_initial['winrate'][0]
-            conquest_wr = conquest_initial['winrate'][0]
+            lhs_wr = lhs_result.winrate
+            conquest_wr = conquest_result.winrate
 
             if abs(lhs_wr - conquest_wr) > 0.005:
                 different_count += 1
@@ -299,10 +311,9 @@ class TestAsymmetricMatchups:
             [0.5, 0.5, 0.5]
         ])
         result = lhs_nash(W)
-        initial = result[-1]
 
         # Hero should have winrate > 0.5 due to strong deck
-        assert initial['winrate'][0] > 0.5
+        assert result.winrate > 0.5
 
     def test_weak_deck(self):
         """
@@ -314,10 +325,9 @@ class TestAsymmetricMatchups:
             [0.5, 0.5, 0.5]
         ])
         result = lhs_nash(W)
-        initial = result[-1]
 
         # Hero should have winrate < 0.5 due to weak deck
-        assert initial['winrate'][0] < 0.5
+        assert result.winrate < 0.5
 
 
 class TestOutputStructure:
@@ -325,23 +335,26 @@ class TestOutputStructure:
     Test the structure of lhs_nash output.
     """
 
-    def test_output_is_list(self):
-        """Output should be a list."""
+    def test_output_is_result_object(self):
+        """Output should be an LHSResult object."""
         W = np.full((3, 3), 0.5)
         result = lhs_nash(W)
-        assert isinstance(result, list)
+        from hearthstone import LHSResult
+        assert isinstance(result, LHSResult)
 
-    def test_state_has_required_keys(self):
-        """Each state should have score, winrate, and havetoplay fields."""
+    def test_state_access_via_api(self):
+        """Can access states through the result API."""
         W = np.full((3, 3), 0.5)
         result = lhs_nash(W)
 
-        for state in result:
-            assert 'score' in state
-            assert 'winrate' in state
-            assert 'havetoplay_hero' in state
-            assert 'havetoplay_opp' in state
-            assert len(state['winrate']) == 2
+        # Should be able to access initial state
+        assert hasattr(result, 'winrate')
+        assert hasattr(result, 'hero_strategy')
+        assert hasattr(result, 'opp_strategy')
+
+        # Should be able to get all states
+        all_states = result.all_states()
+        assert len(all_states) > 0
 
     def test_larger_state_count_than_conquest(self):
         """
@@ -353,7 +366,7 @@ class TestOutputStructure:
         conquest_result = conquest_nash(W)
 
         # LHS has more states due to forced play variations
-        assert len(lhs_result) > len(conquest_result)
+        assert len(lhs_result.all_states()) > len(conquest_result.all_states())
 
 
 class TestWinrateProperties:
@@ -361,22 +374,14 @@ class TestWinrateProperties:
     Test mathematical properties of winrates.
     """
 
-    def test_winrates_sum_to_one(self):
-        """Hero winrate + Opponent winrate should equal 1."""
-        W = np.random.uniform(0, 1, (3, 3))
-        result = lhs_nash(W)
-
-        for state in result:
-            assert state['winrate'][0] + state['winrate'][1] == pytest.approx(1.0, abs=1e-10), f"Winrates should sum to 1.0. Actual sum: {state['winrate'][0] + state['winrate'][1]}"
-
     def test_winrates_in_valid_range(self):
         """All winrates should be between 0 and 1."""
         W = np.random.uniform(0, 1, (3, 3))
         result = lhs_nash(W)
 
-        for state in result:
-            assert 0 <= state['winrate'][0] <= 1
-            assert 0 <= state['winrate'][1] <= 1
+        all_states = result.all_states()
+        for state in all_states:
+            assert 0 <= state.winrate <= 1
 
 
 if __name__ == '__main__':

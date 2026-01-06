@@ -1,8 +1,9 @@
 import numpy as np
 from scipy.optimize import linprog
 
-
-def solve_game(W: np.ndarray) -> dict:
+def solve_game(W: np.ndarray,
+               hero_names: Optional[List[str]] = None,
+               opp_names: Optional[List[str]] = None) -> GameSolution:
     """
     Find Nash equilibrium in mixed strategies for a zero-sum game.
 
@@ -51,31 +52,41 @@ def solve_game(W: np.ndarray) -> dict:
         n = number of Opponent's strategies (columns), and
         W[i,j] = Hero's payoff (or win probability) when Hero plays i
         and Opponent plays j.
+    hero_names : list of str, optional
+        Names for Hero's strategies (rows).
+        Default: ['Deck 0', 'Deck 1', ...].
+    opp_names : list of str, optional
+        Names for Opponent's strategies (columns).
+        Default: ['Deck 0', 'Deck 1', ...].
 
-    Returns
+Returns
     -------
-    dict
-        A dictionary containing:
+    GameSolution
+        Object containing:
 
-        - ``hero_sol``: np.ndarray of shape (m,).
-          Hero's optimal mixed strategy (probability distribution over rows).
-        - ``opp_sol``: np.ndarray of shape (n,).
-          Opponent's optimal mixed strategy (probability distribution over columns).
-        - ``V``: float.
-          The value of the game (Hero's expected payoff under Nash equilibrium).
-
-    Examples
-    --------
-    >>> import numpy as np
-    >>> W = np.array([[0.5, 0.6], [0.4, 0.5]])
-    >>> result = solve_game(W)
-    >>> print(f"Game value: {result['V']:.4f}")
-    >>> print(f"Hero strategy: {result['hero_sol']}")
-    >>> print(f"Opponent strategy: {result['opp_sol']}")
-    """
+        - ``value``: float, the game value (Hero's winrate at equilibrium).
+        - ``hero_strategy``: list of (name, probability) tuples.
+        - ``opp_strategy``: list of (name, probability) tuples.
+"""
 
     W = np.asarray(W, dtype=float)
     m, n = W.shape
+
+    # Default names
+    if hero_names is None:
+        hero_names = [f"Deck {i}" for i in range(m)]
+    if opp_names is None:
+        opp_names = [f"Deck {i}" for i in range(n)]
+
+    # Validate names
+    if len(hero_names) != m:
+        raise ValueError(f"hero_names has {len(hero_names)} elements, expected {m}")
+    if len(opp_names) != n:
+        raise ValueError(f"opp_names has {len(opp_names)} elements, expected {n}")
+
+    
+
+    # Solve
 
     # =========================================================================
     # LP FORMULATION
@@ -158,8 +169,11 @@ def solve_game(W: np.ndarray) -> dict:
     hero_sol = hero_sol / np.sum(hero_sol)
     opp_sol = opp_sol / np.sum(opp_sol)
 
-    return {
-        'hero_sol': hero_sol,
-        'opp_sol': opp_sol,
-        'V': V
-    }
+    return GameSolution(
+        value=V,
+        hero_probs=hero_sol,
+        opp_probs=opp_sol,
+        hero_names=hero_names,
+        opp_names=opp_names
+    )
+    

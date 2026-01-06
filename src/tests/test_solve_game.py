@@ -18,7 +18,7 @@ class TestEqualSquareGame:
         for i in range(1, 11):
             W = np.full((i, i), 0.5)
             result = solve_game(W)
-            assert result['V'] == pytest.approx(0.5, abs=1e-6), f"Failed for {i}x{i} matrix"
+            assert result.value == pytest.approx(0.5, abs=1e-6), f"Failed for {i}x{i} matrix"
 
 class TestOwenExamples:
     """
@@ -48,15 +48,15 @@ class TestOwenExamples:
         result = solve_game(W)
 
         # Check game value
-        assert result['V'] == pytest.approx(3.25, abs=1e-6), f"Game value mismatch. Actual: {result['V']}, Expected: 3.25"
+        assert result.value == pytest.approx(3.25, abs=1e-6), f"Game value mismatch. Actual: {result.value}, Expected: 3.25"
 
         # Check hero strategy
         expected_hero = np.array([0.125, 0.5, 0.375])
-        np.testing.assert_allclose(result['hero_sol'], expected_hero, atol=1e-6, err_msg=f"Hero strategy does not match. Actual: {result['hero_sol']}, Desired: {expected_hero}")
+        np.testing.assert_allclose(result.hero_probs, expected_hero, atol=1e-6, err_msg=f"Hero strategy does not match. Actual: {result.hero_probs}, Desired: {expected_hero}")
 
         # Check opponent strategy
         expected_opp = np.array([1/12, 5/12, 0.5, 0])
-        np.testing.assert_allclose(result['opp_sol'], expected_opp, atol=1e-6, err_msg=f"Opp strategy does not match. Actual: {result['opp_sol']}, Desired: {expected_opp}")
+        np.testing.assert_allclose(result.opp_probs, expected_opp, atol=1e-6, err_msg=f"Opp strategy does not match. Actual: {result.opp_probs}, Desired: {expected_opp}")
 
     def test_owen_example_2(self):
         """
@@ -74,10 +74,10 @@ class TestOwenExamples:
         W = np.array([2, 4, 3, 1, 1, 6, 5, 0]).reshape(2, 4, order='F')
         result = solve_game(W)
 
-        assert result['V'] == pytest.approx(17/7, abs=1e-6), f"Game value mismatch. Actual: {result['V']}, Expected: {17/7}"
+        assert result.value == pytest.approx(17/7, abs=1e-6), f"Game value mismatch. Actual: {result.value}, Expected: {17/7}"
 
         expected_hero = np.array([5/7, 2/7])
-        np.testing.assert_allclose(result['hero_sol'], expected_hero, atol=1e-6, err_msg=f"Hero strategy does not match. Actual: {result['hero_sol']}, Desired: {expected_hero}")
+        np.testing.assert_allclose(result.hero_probs, expected_hero, atol=1e-6, err_msg=f"Hero strategy does not match. Actual: {result.hero_probs}, Desired: {expected_hero}")
 
     def test_owen_example_3(self):
         """
@@ -97,8 +97,8 @@ class TestOwenExamples:
         result = solve_game(W)
 
         expected_strategy = np.array([0.5, 1/3, 1/6])
-        np.testing.assert_allclose(result['hero_sol'], expected_strategy, atol=1e-6, err_msg=f"Hero strategy does not match. Actual: {result['hero_sol']}, Desired: {expected_strategy}")
-        np.testing.assert_allclose(result['opp_sol'], expected_strategy, atol=1e-6, err_msg=f"Opp strategy does not match. Actual: {result['opp_sol']}, Desired: {expected_strategy}")
+        np.testing.assert_allclose(result.hero_probs, expected_strategy, atol=1e-6, err_msg=f"Hero strategy does not match. Actual: {result.hero_probs}, Desired: {expected_strategy}")
+        np.testing.assert_allclose(result.opp_probs, expected_strategy, atol=1e-6, err_msg=f"Opp strategy does not match. Actual: {result.opp_probs}, Desired: {expected_strategy}")
 
 
 class TestDominatedStrategies:
@@ -132,9 +132,9 @@ class TestDominatedStrategies:
         expected_hero = np.array([0.0, 1.0])
         expected_opp = np.array([1.0, 0.0])
 
-        np.testing.assert_allclose(result['hero_sol'], expected_hero, atol=1e-6, err_msg=f"Hero strategy does not match. Actual: {result['hero_sol']}, Desired: {expected_hero}")
-        np.testing.assert_allclose(result['opp_sol'], expected_opp, atol=1e-6, err_msg=f"Opp strategy does not match. Actual: {result['opp_sol']}, Desired: {expected_opp}")
-        assert result['V'] == pytest.approx(3.0, abs=1e-6), f"Game value mismatch. Actual: {result['V']}, Expected: 3.0"
+        np.testing.assert_allclose(result.hero_probs, expected_hero, atol=1e-6, err_msg=f"Hero strategy does not match. Actual: {result.hero_probs}, Desired: {expected_hero}")
+        np.testing.assert_allclose(result.opp_probs, expected_opp, atol=1e-6, err_msg=f"Opp strategy does not match. Actual: {result.opp_probs}, Desired: {expected_opp}")
+        assert result.value == pytest.approx(3.0, abs=1e-6), f"Game value mismatch. Actual: {result.value}, Expected: 3.0"
 
     def test_3x3_with_dominated_row(self):
         """
@@ -150,7 +150,7 @@ class TestDominatedStrategies:
         result = solve_game(W)
 
         # Row 1 should have zero probability (it's dominated)
-        assert result['hero_sol'][0] == pytest.approx(0.0, abs=1e-6), f"Dominated row should have 0 probability. Actual: {result['hero_sol'][0]}"
+        assert result.hero_probs[0] == pytest.approx(0.0, abs=1e-6), f"Dominated row should have 0 probability. Actual: {result.hero_probs[0]}"
 
     def test_3x3_with_dominated_column(self):
         """
@@ -167,7 +167,7 @@ class TestDominatedStrategies:
         result = solve_game(W)
 
         # Column 1 should have zero probability (it's dominated by col 3)
-        assert result['opp_sol'][0] == pytest.approx(0.0, abs=1e-6), f"Dominated column should have 0 probability. Actual: {result['opp_sol'][0]}"
+        assert result.opp_probs[0] == pytest.approx(0.0, abs=1e-6), f"Dominated column should have 0 probability. Actual: {result.opp_probs[0]}"
 
 
 class TestCalibration:
@@ -198,9 +198,9 @@ class TestCalibration:
         for _ in range(n_games):
             W = np.random.uniform(0, 1, (3, 3))
             result = solve_game(W)
-            values.append(result['V'])
-            hero_strategies.append(result['hero_sol'])
-            opp_strategies.append(result['opp_sol'])
+            values.append(result.value)
+            hero_strategies.append(result.hero_probs)
+            opp_strategies.append(result.opp_probs)
 
         mean_value = np.mean(values)
         mean_hero = np.mean(hero_strategies, axis=0)
@@ -222,9 +222,9 @@ class TestEdgeCases:
         """Single-element matrix should return that element as value."""
         W = np.array([[0.7]])
         result = solve_game(W)
-        assert result['V'] == pytest.approx(0.7, abs=1e-6), f"Game value mismatch. Actual: {result['V']}, Expected: 0.7"
-        assert result['hero_sol'][0] == pytest.approx(1.0, abs=1e-6), f"Hero strategy mismatch. Actual: {result['hero_sol'][0]}, Expected: 1.0"
-        assert result['opp_sol'][0] == pytest.approx(1.0, abs=1e-6), f"Opp strategy mismatch. Actual: {result['opp_sol'][0]}, Expected: 1.0"
+        assert result.value == pytest.approx(0.7, abs=1e-6), f"Game value mismatch. Actual: {result.value}, Expected: 0.7"
+        assert result.hero_probs[0] == pytest.approx(1.0, abs=1e-6), f"Hero strategy mismatch. Actual: {result.hero_probs[0]}, Expected: 1.0"
+        assert result.opp_probs[0] == pytest.approx(1.0, abs=1e-6), f"Opp strategy mismatch. Actual: {result.opp_probs[0]}, Expected: 1.0"
 
     def test_non_square_2x3(self):
         """Test a non-square matrix."""
@@ -232,16 +232,16 @@ class TestEdgeCases:
         result = solve_game(W)
 
         # Verify output shapes
-        assert len(result['hero_sol']) == 2
-        assert len(result['opp_sol']) == 3
+        assert len(result.hero_probs) == 2
+        assert len(result.opp_probs) == 3
 
         # Verify probabilities sum to 1
-        assert np.sum(result['hero_sol']) == pytest.approx(1.0, abs=1e-6), f"Hero probabilities should sum to 1. Actual: {np.sum(result['hero_sol'])}"
-        assert np.sum(result['opp_sol']) == pytest.approx(1.0, abs=1e-6), f"Opp probabilities should sum to 1. Actual: {np.sum(result['opp_sol'])}"
+        assert np.sum(result.hero_probs) == pytest.approx(1.0, abs=1e-6), f"Hero probabilities should sum to 1. Actual: {np.sum(result.hero_probs)}"
+        assert np.sum(result.opp_probs) == pytest.approx(1.0, abs=1e-6), f"Opp probabilities should sum to 1. Actual: {np.sum(result.opp_probs)}"
 
         # Verify non-negativity
-        assert np.all(result['hero_sol'] >= -1e-10)
-        assert np.all(result['opp_sol'] >= -1e-10)
+        assert np.all(result.hero_probs >= -1e-10)
+        assert np.all(result.opp_probs >= -1e-10)
 
     def test_non_square_4x2(self):
         """Test another non-square matrix (more rows than columns)."""
@@ -253,10 +253,10 @@ class TestEdgeCases:
         ])
         result = solve_game(W)
 
-        assert len(result['hero_sol']) == 4
-        assert len(result['opp_sol']) == 2
-        assert np.sum(result['hero_sol']) == pytest.approx(1.0, abs=1e-6), f"Hero probabilities should sum to 1. Actual: {np.sum(result['hero_sol'])}"
-        assert np.sum(result['opp_sol']) == pytest.approx(1.0, abs=1e-6), f"Opp probabilities should sum to 1. Actual: {np.sum(result['opp_sol'])}"
+        assert len(result.hero_probs) == 4
+        assert len(result.opp_probs) == 2
+        assert np.sum(result.hero_probs) == pytest.approx(1.0, abs=1e-6), f"Hero probabilities should sum to 1. Actual: {np.sum(result.hero_probs)}"
+        assert np.sum(result.opp_probs) == pytest.approx(1.0, abs=1e-6), f"Opp probabilities should sum to 1. Actual: {np.sum(result.opp_probs)}"
 
     def test_extreme_values(self):
         """Test with extreme (0 and 1) payoffs."""
@@ -267,9 +267,9 @@ class TestEdgeCases:
         result = solve_game(W)
 
         # This is like "matching pennies" - should be mixed 50/50
-        assert result['V'] == pytest.approx(0.5, abs=1e-6), f"Game value mismatch. Actual: {result['V']}, Expected: 0.5"
-        np.testing.assert_allclose(result['hero_sol'], [0.5, 0.5], atol=1e-6, err_msg=f"Hero strategy does not match. Actual: {result['hero_sol']}, Desired: {[0.5, 0.5]}")
-        np.testing.assert_allclose(result['opp_sol'], [0.5, 0.5], atol=1e-6, err_msg=f"Opp strategy does not match. Actual: {result['opp_sol']}, Desired: {[0.5, 0.5]}")
+        assert result.value == pytest.approx(0.5, abs=1e-6), f"Game value mismatch. Actual: {result.value}, Expected: 0.5"
+        np.testing.assert_allclose(result.hero_probs, [0.5, 0.5], atol=1e-6, err_msg=f"Hero strategy does not match. Actual: {result.hero_probs}, Desired: {[0.5, 0.5]}")
+        np.testing.assert_allclose(result.opp_probs, [0.5, 0.5], atol=1e-6, err_msg=f"Opp strategy does not match. Actual: {result.opp_probs}, Desired: {[0.5, 0.5]}")
 
 
 class TestProbabilityValidity:
@@ -284,8 +284,8 @@ class TestProbabilityValidity:
             W = np.random.uniform(-1, 2, (m, n))
             result = solve_game(W)
 
-            assert np.sum(result['hero_sol']) == pytest.approx(1.0, abs=1e-6), f"Hero probabilities should sum to 1. Actual: {np.sum(result['hero_sol'])}"
-            assert np.sum(result['opp_sol']) == pytest.approx(1.0, abs=1e-6), f"Opp probabilities should sum to 1. Actual: {np.sum(result['opp_sol'])}"
+            assert np.sum(result.hero_probs) == pytest.approx(1.0, abs=1e-6), f"Hero probabilities should sum to 1. Actual: {np.sum(result.hero_probs)}"
+            assert np.sum(result.opp_probs) == pytest.approx(1.0, abs=1e-6), f"Opp probabilities should sum to 1. Actual: {np.sum(result.opp_probs)}"
 
     def test_probabilities_non_negative(self):
         """Strategies should always be non-negative."""
@@ -294,10 +294,10 @@ class TestProbabilityValidity:
             W = np.random.uniform(-1, 2, (m, n))
             result = solve_game(W)
 
-            assert np.all(result['hero_sol'] >= -1e-10), \
-                f"Negative hero probability: {result['hero_sol']}"
-            assert np.all(result['opp_sol'] >= -1e-10), \
-                f"Negative opp probability: {result['opp_sol']}"
+            assert np.all(result.hero_probs >= -1e-10), \
+                f"Negative hero probability: {result.hero_probs}"
+            assert np.all(result.opp_probs >= -1e-10), \
+                f"Negative opp probability: {result.opp_probs}"
 
 
 class TestBestResponse:
@@ -321,16 +321,16 @@ class TestBestResponse:
             result = solve_game(W)
 
             # Expected payoff for each pure strategy against opp's mixed strategy
-            expected_payoffs = W @ result['opp_sol']
+            expected_payoffs = W @ result.opp_probs
 
             # For strategies with positive probability, payoff should equal V
-            for i, prob in enumerate(result['hero_sol']):
+            for i, prob in enumerate(result.hero_probs):
                 if prob > 1e-6:
-                    assert expected_payoffs[i] == pytest.approx(result['V'], abs=1e-5), \
-                        f"Hero strategy {i} payoff {expected_payoffs[i]} != V={result['V']}"
+                    assert expected_payoffs[i] == pytest.approx(result.value, abs=1e-5), \
+                        f"Hero strategy {i} payoff {expected_payoffs[i]} != V={result.value}"
 
             # No strategy should have payoff greater than V
-            assert np.all(expected_payoffs <= result['V'] + 1e-5)
+            assert np.all(expected_payoffs <= result.value + 1e-5)
 
     def test_opp_best_response(self):
         """
@@ -345,16 +345,16 @@ class TestBestResponse:
             result = solve_game(W)
 
             # Expected payoff for Hero using mixed strategy against each opp pure strategy
-            hero_payoffs = result['hero_sol'] @ W
+            hero_payoffs = result.hero_probs @ W
 
             # For opponent strategies with positive probability, Hero's payoff should equal V
-            for j, prob in enumerate(result['opp_sol']):
+            for j, prob in enumerate(result.opp_probs):
                 if prob > 1e-6:
-                    assert hero_payoffs[j] == pytest.approx(result['V'], abs=1e-5), \
-                        f"Against opp strategy {j}: payoff {hero_payoffs[j]} != V={result['V']}"
+                    assert hero_payoffs[j] == pytest.approx(result.value, abs=1e-5), \
+                        f"Against opp strategy {j}: payoff {hero_payoffs[j]} != V={result.value}"
 
             # Opponent can't force Hero below V
-            assert np.all(hero_payoffs >= result['V'] - 1e-5)
+            assert np.all(hero_payoffs >= result.value - 1e-5)
 
 if __name__ == '__main__':
     pytest.main([__file__, '-v'])

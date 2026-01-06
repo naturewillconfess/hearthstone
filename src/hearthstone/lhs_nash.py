@@ -37,10 +37,11 @@ Note: At most one of havetoplay_hero or havetoplay_opp can be non-None at a time
 
 import numpy as np
 from itertools import combinations
-from .solve_game import solve_game
+from typing import List, Optional
+from .solve_game import _solve_game_internal
+from .results import LHSResult
 
-
-def lhs_nash(W: np.ndarray) -> list:
+def _lhs_nash_internal(W: np.ndarray) -> list:
     """
     Find Nash equilibrium for all subgames in a Last Hero Standing match.
 
@@ -299,7 +300,7 @@ def lhs_nash(W: np.ndarray) -> list:
 
                     G[0, idx_o] = W[h, o] * win_value + (1 - W[h, o]) * lose_value
 
-                solution = solve_game(G)
+                solution = _solve_game_internal(G)
                 V = solution['V']
                 V_opp = 1.0 - V
                 result['winrate'] = (V, V_opp)
@@ -331,7 +332,7 @@ def lhs_nash(W: np.ndarray) -> list:
 
                     G[idx_h, 0] = W[h, o] * win_value + (1 - W[h, o]) * lose_value
 
-                solution = solve_game(G)
+                solution = _solve_game_internal(G)
                 V = solution['V']
                 V_opp = 1.0 - V
                 result['winrate'] = (V, V_opp)
@@ -363,7 +364,7 @@ def lhs_nash(W: np.ndarray) -> list:
 
                         G[idx_h, idx_o] = W[h, o] * win_value + (1 - W[h, o]) * lose_value
 
-                solution = solve_game(G)
+                solution = _solve_game_internal(G)
                 V = solution['V']
                 V_opp = 1.0 - V
                 result['winrate'] = (V, V_opp)
@@ -376,3 +377,71 @@ def lhs_nash(W: np.ndarray) -> list:
         results_list.append(result)
 
     return results_list
+
+
+def lhs_nash(W: np.ndarray,
+             deck_names: Optional[List[str]] = None) -> LHSResult:
+    """
+    Find Nash equilibrium for all subgames in a Last Hero Standing match.
+
+    This function analyzes an LHS match by computing optimal play
+    (Nash equilibrium in mixed strategies) for every possible game state.
+    The state space includes information about forced plays (when a player
+    must continue using a winning deck).
+
+    Parameters
+    ----------
+    W : np.ndarray
+        Square winrate matrix of shape (n, n) where:
+
+        - n = number of decks per player
+        - W[i,j] = probability that Hero's deck i beats Opponent's deck j
+        - Values should be between 0 and 1
+
+    deck_names : list of str, optional
+        Names for each deck. Default: ['Deck 0', 'Deck 1', ...].
+
+    Returns
+    -------
+    LHSResult
+        Result object with easy access to match analysis:
+
+        - ``winrate``: Hero's match winrate from initial state
+        - ``hero_strategy``: Hero's optimal initial deck selection
+        - ``opp_strategy``: Opponent's optimal initial deck selection
+        - ``get_state(hero_lost, opp_lost, forced_hero, forced_opp)``:
+          Get any mid-match state including forced play situations
+        - ``all_states()``: Get all states for advanced analysis
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> # Simple 2-deck match with equal matchups
+    >>> W = np.array([[0.5, 0.5], [0.5, 0.5]])
+    >>> result = lhs_nash(W, deck_names=['Aggro', 'Control'])
+    >>> print(f"Match winrate: {result.winrate:.1%}")
+    Match winrate: 50.0%
+
+    >>> # View optimal strategy
+    >>> print(result.hero_strategy)
+    [('Aggro', 0.5), ('Control', 0.5)]
+
+    >>> # Check state where Hero lost Aggro and Opponent is forced to play Control
+    >>> state = result.get_state(hero_lost=['Aggro'], forced_opp='Control')
+    >>> print(f"Winrate from this state: {state.winrate:.1%}")
+    """
+    W = np.asarray(W, dtype=float)
+    n = W.shape[0]
+
+    # Default deck names
+    if deck_names is None:
+        deck_names = [f"Deck {i}" for i in range(n)]
+
+    # Validate deck names
+    if len(deck_names) != n:
+        raise ValueError(f"deck_names has {len(deck_names)} elements, expected {n}")
+
+    # Compute all states
+    states = _lhs_nash_internal(W)
+
+    return LHSResult(states, deck_names)

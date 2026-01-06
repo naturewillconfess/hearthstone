@@ -1,11 +1,14 @@
-Function Reference
-==================
+API Reference
+=============
 
-This page contains detailed documentation for all public functions in the
-hearthstone package.
+This page contains detailed documentation for all public functions and classes
+in the hearthstone package.
+
+Functions
+---------
 
 solve_game
-----------
+~~~~~~~~~~
 
 .. autofunction:: hearthstone.solve_game
 
@@ -23,18 +26,19 @@ solve_game
        [0.7, 0.3, 0.5],
    ])
 
-   result = solve_game(W)
-   print(f"Game value: {result['V']:.4f}")
-   print(f"Hero strategy: {result['hero_sol']}")
-   print(f"Opponent strategy: {result['opp_sol']}")
+   result = solve_game(W, hero_names=['Rock', 'Paper', 'Scissors'],
+                       opp_names=['Rock', 'Paper', 'Scissors'])
+
+   print(f"Game value: {result.value:.4f}")
+   print(f"Hero strategy: {result.hero_strategy}")
+   print(result)  # Pretty-printed table
 
    # Output:
    # Game value: 0.5000
-   # Hero strategy: [0.333 0.333 0.333]
-   # Opponent strategy: [0.333 0.333 0.333]
+   # Hero strategy: [('Rock', 0.333), ('Paper', 0.333), ('Scissors', 0.333)]
 
 conquest_nash
--------------
+~~~~~~~~~~~~~
 
 .. autofunction:: hearthstone.conquest_nash
 
@@ -51,21 +55,21 @@ conquest_nash
        [0.40, 0.55, 0.45],
    ])
 
-   result = conquest_nash(W)
+   result = conquest_nash(W, deck_names=['Aggro', 'Midrange', 'Control'])
 
-   # Get initial state (always last element)
-   initial = result[-1]
-   print(f"Match winrate: {initial['winrate'][0]:.2%}")
-   print(f"Deck selection: {initial['nash'][0]}")
+   # Easy access to initial state
+   print(f"Match winrate: {result.winrate:.2%}")
+   print(f"Deck selection: {result.hero_strategy}")
 
-   # Access specific states
-   for state in result:
-       if state['score'] == ((0,), (1,)):
-           print(f"\nState (0,)-(1,): Hero won with 0, Opp won with 1")
-           print(f"  Winrate: {state['winrate'][0]:.2%}")
+   # Access specific mid-match states
+   state = result.get_state(hero_won=['Aggro'], opp_won=['Midrange'])
+   print(f"Winrate after Aggro vs Midrange: {state.winrate:.2%}")
+
+   # Print all states
+   print(result)
 
 lhs_nash
---------
+~~~~~~~~
 
 .. autofunction:: hearthstone.lhs_nash
 
@@ -82,24 +86,18 @@ lhs_nash
        [0.40, 0.55, 0.45],
    ])
 
-   result = lhs_nash(W)
+   result = lhs_nash(W, deck_names=['Aggro', 'Midrange', 'Control'])
 
-   # Find initial state (no losses, no forced play)
-   for state in result:
-       if (state['score'] == ((), ()) and
-           state.get('havetoplay_hero') is None and
-           state.get('havetoplay_opp') is None):
-           initial = state
-           break
+   # Easy access to initial state
+   print(f"Match winrate: {result.winrate:.2%}")
+   print(f"Deck selection: {result.hero_strategy}")
 
-   print(f"Match winrate: {initial['winrate'][0]:.2%}")
-
-   # Find forced-play states
-   forced_hero = [s for s in result if s.get('havetoplay_hero') is not None]
-   print(f"States where Hero is forced: {len(forced_hero)}")
+   # Access state with forced play
+   state = result.get_state(hero_lost=['Aggro'], forced_opp='Control')
+   print(f"Winrate in this situation: {state.winrate:.2%}")
 
 ban_nash
---------
+~~~~~~~~
 
 .. autofunction:: hearthstone.ban_nash
 
@@ -118,17 +116,60 @@ ban_nash
        [0.45, 0.50, 0.55, 0.50],
    ])
 
+   deck_names = ['Aggro', 'Midrange', 'Control', 'Combo']
+
    # Conquest with 1 ban
-   result = ban_nash(W, bans=1, match_format='conquest')
+   result = ban_nash(W, bans=1, match_format='conquest',
+                     deck_names=deck_names)
 
-   print(f"Winrate after bans: {result['winrate'][0]:.2%}")
-   print(f"Ban options: {result['stratlist']['hero']}")
-   print(f"Your ban probabilities: {result['bans']['hero']}")
+   print(f"Winrate after bans: {result.winrate:.2%}")
+   print(f"Your ban strategy: {result.hero_ban_strategy}")
 
-   # LHS with 1 ban
-   result_lhs = ban_nash(W, bans=1, match_format='lhs')
-   print(f"LHS winrate: {result_lhs['winrate'][0]:.2%}")
+   # Get match analysis for specific bans
+   match = result.get_match(hero_bans=['Combo'], opp_bans=['Aggro'])
+   print(f"Match winrate if you ban Combo and opponent bans Aggro: {match.winrate:.2%}")
 
-   # With 2 bans
-   result_2ban = ban_nash(W, bans=2, match_format='conquest')
-   print(f"2-ban options: {result_2ban['stratlist']['hero']}")
+Result Classes
+--------------
+
+GameSolution
+~~~~~~~~~~~~
+
+.. autoclass:: hearthstone.GameSolution
+   :members:
+   :undoc-members:
+
+ConquestResult
+~~~~~~~~~~~~~~
+
+.. autoclass:: hearthstone.ConquestResult
+   :members:
+   :undoc-members:
+
+ConquestState
+~~~~~~~~~~~~~
+
+.. autoclass:: hearthstone.ConquestState
+   :members:
+   :undoc-members:
+
+LHSResult
+~~~~~~~~~
+
+.. autoclass:: hearthstone.LHSResult
+   :members:
+   :undoc-members:
+
+LHSState
+~~~~~~~~
+
+.. autoclass:: hearthstone.LHSState
+   :members:
+   :undoc-members:
+
+BanResult
+~~~~~~~~~
+
+.. autoclass:: hearthstone.BanResult
+   :members:
+   :undoc-members:

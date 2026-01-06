@@ -12,17 +12,18 @@ The test cases are ported from the R package's test-ban_nash.R
 
 import numpy as np
 import pytest
-import sys
-import os
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from hearthstone import ban_nash
+from hearthstone import ban_nash, BanResult
 
 
 # Test parameters
 n_games = 200
 tolerance = 0.075
+
+
+def get_ban_probs(ban_strategy):
+    """Extract probabilities from ban strategy list of tuples."""
+    return np.array([prob for _, prob in ban_strategy])
 
 
 class TestSymmetricBanNash:
@@ -36,8 +37,7 @@ class TestSymmetricBanNash:
         result = ban_nash(W, bans=1, match_format='conquest')
 
         # Match should be 50/50
-        assert result['winrate'][0] == pytest.approx(0.5, abs=1e-6), f"Hero winrate mismatch. Actual: {result['winrate'][0]}, Expected: 0.5"
-        assert result['winrate'][1] == pytest.approx(0.5, abs=1e-6), f"Opp winrate mismatch. Actual: {result['winrate'][1]}, Expected: 0.5"
+        assert result.winrate == pytest.approx(0.5, abs=1e-6), f"Hero winrate mismatch. Actual: {result.winrate}, Expected: 0.5"
 
     def test_4x4_symmetric_lhs(self):
         """Test a 4x4 symmetric game with 1 ban in LHS format."""
@@ -45,8 +45,7 @@ class TestSymmetricBanNash:
         result = ban_nash(W, bans=1, match_format='lhs')
 
         # Match should be 50/50
-        assert result['winrate'][0] == pytest.approx(0.5, abs=1e-6), f"Hero winrate mismatch. Actual: {result['winrate'][0]}, Expected: 0.5"
-        assert result['winrate'][1] == pytest.approx(0.5, abs=1e-6), f"Opp winrate mismatch. Actual: {result['winrate'][1]}, Expected: 0.5"
+        assert result.winrate == pytest.approx(0.5, abs=1e-6), f"Hero winrate mismatch. Actual: {result.winrate}, Expected: 0.5"
 
 
 class TestCalibrationConquest:
@@ -70,9 +69,9 @@ class TestCalibrationConquest:
         for _ in range(n_games):
             W = np.random.uniform(0, 1, (3, 3))
             result = ban_nash(W, bans=1, match_format='conquest')
-            winrates.append(result['winrate'][0])
-            hero_bans.append(result['bans']['hero'])
-            opp_bans.append(result['bans']['opp'])
+            winrates.append(result.winrate)
+            hero_bans.append(get_ban_probs(result.hero_ban_strategy))
+            opp_bans.append(get_ban_probs(result.opp_ban_strategy))
 
         mean_winrate = np.mean(winrates)
         mean_hero = np.mean(hero_bans, axis=0)
@@ -100,9 +99,9 @@ class TestCalibrationConquest:
         for _ in range(n_games):
             W = np.random.uniform(0, 1, (3, 3))
             result = ban_nash(W, bans=2, match_format='conquest')
-            winrates.append(result['winrate'][0])
-            hero_bans.append(result['bans']['hero'])
-            opp_bans.append(result['bans']['opp'])
+            winrates.append(result.winrate)
+            hero_bans.append(get_ban_probs(result.hero_ban_strategy))
+            opp_bans.append(get_ban_probs(result.opp_ban_strategy))
 
         mean_winrate = np.mean(winrates)
         mean_hero = np.mean(hero_bans, axis=0)
@@ -127,9 +126,9 @@ class TestCalibrationConquest:
         for _ in range(n_games):
             W = np.random.uniform(0, 1, (4, 4))
             result = ban_nash(W, bans=1, match_format='conquest')
-            winrates.append(result['winrate'][0])
-            hero_bans.append(result['bans']['hero'])
-            opp_bans.append(result['bans']['opp'])
+            winrates.append(result.winrate)
+            hero_bans.append(get_ban_probs(result.hero_ban_strategy))
+            opp_bans.append(get_ban_probs(result.opp_ban_strategy))
 
         mean_winrate = np.mean(winrates)
         mean_hero = np.mean(hero_bans, axis=0)
@@ -154,9 +153,9 @@ class TestCalibrationConquest:
         for _ in range(n_games):
             W = np.random.uniform(0, 1, (4, 4))
             result = ban_nash(W, bans=2, match_format='conquest')
-            winrates.append(result['winrate'][0])
-            hero_bans.append(result['bans']['hero'])
-            opp_bans.append(result['bans']['opp'])
+            winrates.append(result.winrate)
+            hero_bans.append(get_ban_probs(result.hero_ban_strategy))
+            opp_bans.append(get_ban_probs(result.opp_ban_strategy))
 
         mean_winrate = np.mean(winrates)
         mean_hero = np.mean(hero_bans, axis=0)
@@ -182,9 +181,9 @@ class TestCalibrationLHS:
         for _ in range(n_games):
             W = np.random.uniform(0, 1, (3, 3))
             result = ban_nash(W, bans=1, match_format='lhs')
-            winrates.append(result['winrate'][0])
-            hero_bans.append(result['bans']['hero'])
-            opp_bans.append(result['bans']['opp'])
+            winrates.append(result.winrate)
+            hero_bans.append(get_ban_probs(result.hero_ban_strategy))
+            opp_bans.append(get_ban_probs(result.opp_ban_strategy))
 
         mean_winrate = np.mean(winrates)
         mean_hero = np.mean(hero_bans, axis=0)
@@ -204,9 +203,9 @@ class TestCalibrationLHS:
         for _ in range(n_games):
             W = np.random.uniform(0, 1, (3, 3))
             result = ban_nash(W, bans=2, match_format='lhs')
-            winrates.append(result['winrate'][0])
-            hero_bans.append(result['bans']['hero'])
-            opp_bans.append(result['bans']['opp'])
+            winrates.append(result.winrate)
+            hero_bans.append(get_ban_probs(result.hero_ban_strategy))
+            opp_bans.append(get_ban_probs(result.opp_ban_strategy))
 
         mean_winrate = np.mean(winrates)
         mean_hero = np.mean(hero_bans, axis=0)
@@ -226,9 +225,9 @@ class TestCalibrationLHS:
         for _ in range(n_games):
             W = np.random.uniform(0, 1, (4, 4))
             result = ban_nash(W, bans=1, match_format='lhs')
-            winrates.append(result['winrate'][0])
-            hero_bans.append(result['bans']['hero'])
-            opp_bans.append(result['bans']['opp'])
+            winrates.append(result.winrate)
+            hero_bans.append(get_ban_probs(result.hero_ban_strategy))
+            opp_bans.append(get_ban_probs(result.opp_ban_strategy))
 
         mean_winrate = np.mean(winrates)
         mean_hero = np.mean(hero_bans, axis=0)
@@ -248,9 +247,9 @@ class TestCalibrationLHS:
         for _ in range(n_games):
             W = np.random.uniform(0, 1, (4, 4))
             result = ban_nash(W, bans=2, match_format='lhs')
-            winrates.append(result['winrate'][0])
-            hero_bans.append(result['bans']['hero'])
-            opp_bans.append(result['bans']['opp'])
+            winrates.append(result.winrate)
+            hero_bans.append(get_ban_probs(result.hero_ban_strategy))
+            opp_bans.append(get_ban_probs(result.opp_ban_strategy))
 
         mean_winrate = np.mean(winrates)
         mean_hero = np.mean(hero_bans, axis=0)
@@ -266,61 +265,40 @@ class TestBanNashStructure:
     Tests for the structure of ban_nash output.
     """
 
-    def test_output_structure(self):
-        """Verify the output dictionary has all expected keys."""
+    def test_output_is_ban_result(self):
+        """Verify the output is a BanResult object."""
         W = np.random.uniform(0, 1, (4, 4))
         result = ban_nash(W, bans=1, match_format='conquest')
 
-        # Check top-level keys
-        assert 'bans' in result
-        assert 'winrate' in result
-        assert 'stratlist' in result
-        assert 'matches' in result
+        assert isinstance(result, BanResult)
+        assert hasattr(result, 'winrate')
+        assert hasattr(result, 'hero_ban_strategy')
+        assert hasattr(result, 'opp_ban_strategy')
+        assert hasattr(result, 'get_match')
 
-        # Check bans structure
-        assert 'hero' in result['bans']
-        assert 'opp' in result['bans']
-
-        # Check stratlist structure
-        assert 'hero' in result['stratlist']
-        assert 'opp' in result['stratlist']
-
-        # Check dimensions
-        n_ban_options = 4  # C(4,1) = 4
-        assert len(result['bans']['hero']) == n_ban_options
-        assert len(result['bans']['opp']) == n_ban_options
-        assert len(result['stratlist']['hero']) == n_ban_options
-        assert len(result['stratlist']['opp']) == n_ban_options
-        assert len(result['matches']) == n_ban_options
-        assert len(result['matches'][0]) == n_ban_options
-
-    def test_stratlist_contents(self):
-        """Verify stratlist contains the correct ban combinations."""
+    def test_strategy_dimensions(self):
+        """Verify strategy dimensions match expected ban combinations."""
         W = np.random.uniform(0, 1, (4, 4))
         result = ban_nash(W, bans=1, match_format='conquest')
 
-        # For 4 decks with 1 ban, stratlist should be [(0,), (1,), (2,), (3,)]
-        expected = [(0,), (1,), (2,), (3,)]
-        assert result['stratlist']['hero'] == expected
-        assert result['stratlist']['opp'] == expected
+        # For 4 decks with 1 ban, there are 4 ban options
+        n_ban_options = 4
+        assert len(result.hero_ban_strategy) == n_ban_options
+        assert len(result.opp_ban_strategy) == n_ban_options
 
-    def test_matches_contain_full_analysis(self):
-        """Verify that matches contain full match analyses."""
-        W = np.random.uniform(0, 1, (3, 3))
-        result = ban_nash(W, bans=1, match_format='conquest')
+    def test_get_match_returns_result(self):
+        """Verify get_match returns a proper match result."""
+        W = np.random.uniform(0, 1, (4, 4))
+        result = ban_nash(W, bans=1, match_format='conquest',
+                         deck_names=['A', 'B', 'C', 'D'])
 
-        # Each matches[i][j] should be a list of subgame states
-        # from conquest_nash or lhs_nash
-        for i in range(3):
-            for j in range(3):
-                match = result['matches'][i][j]
-                assert isinstance(match, list)
-                assert len(match) > 0
+        # Get a specific match after bans
+        match = result.get_match(hero_bans=['B'], opp_bans=['A'])
 
-                # Check that the last element has the expected structure
-                initial = match[-1]
-                assert 'score' in initial
-                assert 'winrate' in initial
+        # Should be a ConquestResult for conquest format
+        from hearthstone import ConquestResult
+        assert isinstance(match, ConquestResult)
+        assert hasattr(match, 'winrate')
 
 
 class TestBanNashErrors:

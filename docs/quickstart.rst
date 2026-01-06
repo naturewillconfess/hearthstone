@@ -16,8 +16,8 @@ The core input to all functions is a **winrate matrix** ``W``, where:
    import numpy as np
 
    # Example: 3 decks per player
-   # Your decks: Aggro (0), Midrange (1), Control (2)
-   # Their decks: Aggro (0), Midrange (1), Control (2)
+   deck_names = ['Aggro', 'Midrange', 'Control']
+
    W = np.array([
        #  vs Aggro  vs Mid  vs Control
        [    0.50,   0.55,     0.40],  # Your Aggro
@@ -35,19 +35,41 @@ game (or ladder with only those decks available):
 
    from hearthstone import solve_game
 
-   result = solve_game(W)
+   result = solve_game(W, hero_names=deck_names, opp_names=deck_names)
 
-   print(f"Game value (your winrate): {result['V']:.2%}")
-   print(f"Your optimal strategy: {result['hero_sol']}")
-   print(f"Opponent's optimal strategy: {result['opp_sol']}")
+   print(f"Game value (your winrate): {result.value:.2%}")
+   print(f"Your optimal strategy: {result.hero_strategy}")
+   print(f"Opponent's optimal strategy: {result.opp_strategy}")
 
 Output::
 
    Game value (your winrate): 50.00%
-   Your optimal strategy: [0.25 0.5  0.25]
-   Opponent's optimal strategy: [0.25 0.5  0.25]
+   Your optimal strategy: [('Aggro', 0.25), ('Midrange', 0.5), ('Control', 0.25)]
+   Opponent's optimal strategy: [('Aggro', 0.25), ('Midrange', 0.5), ('Control', 0.25)]
 
-You could copy the Winrate Matrix from the latest Vicious Syndicate report, pass it to this funcation and discover the equilibrial strategy for current Ladder Meta.
+You can also just print the result for a nice summary:
+
+.. code-block:: python
+
+   print(result)
+
+Output::
+
+   Game Solution
+   ==========================
+   Value: 50.0%
+
+   Hero Strategy:
+     Aggro         25.0%
+     Midrange      50.0%
+     Control       25.0%
+
+   Opponent Strategy:
+     Aggro         25.0%
+     Midrange      50.0%
+     Control       25.0%
+
+You could copy the Winrate Matrix from the latest Vicious Syndicate report, pass it to this function and discover the equilibrial strategy for current Ladder Meta.
 
 Conquest Format
 ---------------
@@ -58,18 +80,29 @@ Use :func:`~hearthstone.conquest_nash` to analyze a Conquest match:
 
    from hearthstone import conquest_nash
 
-   result = conquest_nash(W)
-   initial = result[-1]  # Initial state (no games played yet)
+   result = conquest_nash(W, deck_names=deck_names)
 
-   print(f"Match winrate: {initial['winrate'][0]:.2%}")
-   print(f"Your optimal deck selection probabilities: {initial['nash'][0]}")
-   print(f"Opponent's optimal deck selection probabilities: {initial['nash'][1]}")
+   print(f"Match winrate: {result.winrate:.2%}")
+   print(f"Your optimal deck selection: {result.hero_strategy}")
+   print(f"Opponent's optimal deck selection: {result.opp_strategy}")
 
 Output::
 
    Match winrate: 50.00%
-   Your optimal deck selection probabilities: [0.33587652 0.33352085 0.33060263]
-   Opponent's optimal deck selection probabilities: [0.33587652 0.33352085 0.33060263]
+   Your optimal deck selection: [('Aggro', 0.336), ('Midrange', 0.334), ('Control', 0.331)]
+   Opponent's optimal deck selection: [('Aggro', 0.336), ('Midrange', 0.334), ('Control', 0.331)]
+
+Accessing Mid-Match States
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You can query states after games have been played:
+
+.. code-block:: python
+
+   # After you won with Aggro
+   state = result.get_state(hero_won=['Aggro'])
+   print(f"Winrate after winning with Aggro: {state.winrate:.2%}")
+   print(f"Your next deck choice: {state.hero_strategy}")
 
 Last Hero Standing (LHS)
 ------------------------
@@ -80,20 +113,25 @@ Use :func:`~hearthstone.lhs_nash` for Last Hero Standing format:
 
    from hearthstone import lhs_nash
 
-   result = lhs_nash(W)
+   result = lhs_nash(W, deck_names=deck_names)
 
-   # Find initial state (no losses, no forced plays)
-   initial = result[-1]
-
-   print(f"Match winrate: {initial['winrate'][0]:.2%}")
-   print(f"Your optimal deck selection probabilities: {initial['nash'][0]}")
-   print(f"Opponent's optimal deck selection probabilities: {initial['nash'][1]}")
+   print(f"Match winrate: {result.winrate:.2%}")
+   print(f"Your optimal deck selection: {result.hero_strategy}")
+   print(f"Opponent's optimal deck selection: {result.opp_strategy}")
 
 Output::
 
    Match winrate: 50.00%
-   Your optimal deck selection probabilities: [0.32713178 0.32868217 0.34418605]
-   Opponent's optimal deck selection probabilities: [0.32713178 0.32868217 0.34418605]
+   Your optimal deck selection: [('Aggro', 0.327), ('Midrange', 0.329), ('Control', 0.344)]
+   Opponent's optimal deck selection: [('Aggro', 0.327), ('Midrange', 0.329), ('Control', 0.344)]
+
+In LHS, when accessing mid-match states, you can specify forced plays:
+
+.. code-block:: python
+
+   # After you lost with Aggro and opponent is forced to play their winning deck
+   state = result.get_state(hero_lost=['Aggro'], forced_opp='Midrange')
+   print(f"Winrate: {state.winrate:.2%}")
 
 Ban Phase
 ---------
@@ -103,8 +141,11 @@ Use :func:`~hearthstone.ban_nash` to analyze matches with bans:
 .. code-block:: python
 
    from hearthstone import ban_nash
+   import numpy as np
 
    # 4 decks, 1 ban each, Conquest format
+   deck_names_4 = ['Aggro', 'Midrange', 'Control', 'Combo']
+
    W4 = np.array([
        [0.55, 0.45, 0.60, 0.50],
        [0.50, 0.50, 0.50, 0.55],
@@ -112,16 +153,27 @@ Use :func:`~hearthstone.ban_nash` to analyze matches with bans:
        [0.45, 0.50, 0.55, 0.50],
    ])
 
-   result = ban_nash(W4, bans=1, match_format='conquest')
+   result = ban_nash(W4, bans=1, match_format='conquest',
+                     deck_names=deck_names_4)
 
-   print(f"Winrate after optimal bans: {result['winrate'][0]:.2%}")
-   print(f"Your optimal ban probabilities: {result['bans']['hero']}")
-   print(f"Opponent's optimal ban probabilities: {result['bans']['opp']}")
+   print(f"Winrate after optimal bans: {result.winrate:.2%}")
+   print(f"Your optimal ban strategy: {result.hero_ban_strategy}")
 
 Output::
-   
-   Winrate after optimal bans: 53.50%
-   Your optimal ban probabilities: Your optimal ban probabilities: [0.80077186 0.19922814 0.         0.        ]
-   Opponent's optimal ban probabilities: Opponent's optimal ban probabilities: [0.17841089 0.         0.82158911 0.        ]
 
-See :doc:`../examples` for further details
+   Winrate after optimal bans: 53.50%
+   Your optimal ban strategy: [(('Aggro',), 0.80), (('Midrange',), 0.20), ...]
+
+Getting Match Analysis After Specific Bans
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You can get the full match analysis for any specific ban combination:
+
+.. code-block:: python
+
+   # Get the match after you ban Combo and opponent bans Control
+   match = result.get_match(hero_bans=['Combo'], opp_bans=['Control'])
+   print(f"Match winrate after these bans: {match.winrate:.2%}")
+   print(f"Your deck selection: {match.hero_strategy}")
+
+See :doc:`reference` for the complete API reference.
