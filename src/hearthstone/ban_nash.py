@@ -178,7 +178,6 @@ def ban_nash(W: np.ndarray, bans: int, match_format: str = 'conquest') -> dict:
             hero_winrate = initial_state['winrate'][0]
 
             G[i, j] = hero_winrate
-            matches[i][j] = match_result
 
     solution = solve_game(G)
 
@@ -191,10 +190,5 @@ def ban_nash(W: np.ndarray, bans: int, match_format: str = 'conquest') -> dict:
             'hero': hero_ban_strategy,
             'opp': opp_ban_strategy
         },
-        'winrate': (overall_winrate, 1.0 - overall_winrate),
-        'stratlist': {
-            'hero': hero_ban_options,
-            'opp': opp_ban_options
-        },
-        'matches': matches
+        'winrate': (overall_winrate, 1.0 - overall_winrate)
     }

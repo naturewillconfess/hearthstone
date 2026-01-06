@@ -123,3 +123,5 @@ Output::
    Winrate after optimal bans: 53.50%
    Your optimal ban probabilities: Your optimal ban probabilities: [0.80077186 0.19922814 0.         0.        ]
    Opponent's optimal ban probabilities: Opponent's optimal ban probabilities: [0.17841089 0.         0.82158911 0.        ]
+
+See :doc:`../examples` for further details
