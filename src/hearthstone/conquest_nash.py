@@ -28,11 +28,12 @@ import numpy as np
 from itertools import combinations
 from typing import List, Optional, Tuple
 from .solve_game import solve_game
-from .results import ConquestResult
+from .results import ConquestResult, ConquestStateSolution
 
 
 def conquest_nash(W: np.ndarray,
-                  deck_names: Optional[List[str]] = None) -> ConquestResult:
+                  hero_names: Optional[List[str]] = None,
+                  opp_names: Optional[List[str]] = None) -> ConquestResult:
     """
     Find Nash equilibrium for all subgames in a Conquest match.
 
@@ -87,13 +88,22 @@ def conquest_nash(W: np.ndarray,
     W = np.asarray(W, dtype=float)
     n = W.shape[0]
 
-    # Default deck names
-    if deck_names is None:
-        deck_names = [f"Deck {i}" for i in range(n)]
 
-    # Validate deck names
-    if len(deck_names) != n:
-        raise ValueError(f"deck_names has {len(deck_names)} elements, expected {n}")
+    # Default names
+    if hero_names is None:
+        hero_names = [f"Deck {i}" for i in range(m)]
+    if opp_names is None:
+        opp_names = [f"Deck {i}" for i in range(n)]
+
+    # Validate names
+    if len(hero_names) != m:
+        raise ValueError(f"hero_names has {len(hero_names)} elements, expected {m}")
+    if len(opp_names) != n:
+        raise ValueError(f"opp_names has {len(opp_names)} elements, expected {n}")
+
+    
+    hero_index_to_name = list(zip(range(n), hero_names))
+    opp_index_to_name = list(zip(range(n), opp_names))
 
     # Compute all states
     # =========================================================================
@@ -145,9 +155,7 @@ def conquest_nash(W: np.ndarray,
     # =========================================================================
 
     # Dictionary to store computed results: state -> result dict
-    state_results = {}
-
-    # List to accumulate results (for return value, preserves order)
+    state_winrates = {}
     results_list = []
 
     # =========================================================================
@@ -173,11 +181,6 @@ def conquest_nash(W: np.ndarray,
         hero_wins = len(hero_won)
         opp_wins = len(opp_won)
 
-        # Initialize result for this state
-        result = {
-            'score': (tuple(sorted(hero_won)), tuple(sorted(opp_won)))
-        }
-
         # Remaining decks for each player
         hero_remaining = [i for i in range(n) if i not in hero_won]
         opp_remaining = [j for j in range(n) if j not in opp_won]
@@ -187,16 +190,12 @@ def conquest_nash(W: np.ndarray,
         # -----------------------------------------------------------------
         if hero_wins == n:
             V = 1.0
-            V_opp = 0.0
-            result['winrate'] = (V, V_opp)
 
         # -----------------------------------------------------------------
         # CASE 2: Opponent has won with all decks (Opponent wins the match)
         # -----------------------------------------------------------------
         elif opp_wins == n:
             V = 0.0
-            V_opp = 1.0
-            result['winrate'] = (V, V_opp)
 
         # -----------------------------------------------------------------
         # CASE 3: Hero has n-1 wins (needs to win one more game to win match)
@@ -206,10 +205,7 @@ def conquest_nash(W: np.ndarray,
         # -----------------------------------------------------------------
         
         elif hero_wins == n - 1:
-
             V = 1-np.prod(1-W[hero_remaining[0], opp_remaining])
-            V_opp = 1.0 - V
-            result['winrate'] = (V, V_opp)
 
         # -----------------------------------------------------------------
         # CASE 4: Opponent has n-1 wins (needs to win one more to win match)
@@ -218,10 +214,7 @@ def conquest_nash(W: np.ndarray,
         # -----------------------------------------------------------------
         elif opp_wins == n - 1:
             # Remaining decks for each player
-            
-            V_opp = 1-np.prod(W[hero_remaining, opp_remaining[0]])
-            V = 1-V_opp
-            result['winrate'] = (V, V_opp)
+            V = np.prod(W[hero_remaining, opp_remaining[0]])
 
         # -----------------------------------------------------------------
         # CASE 5: General case (need to solve deck selection game)
@@ -241,10 +234,14 @@ def conquest_nash(W: np.ndarray,
             num_hero_decks = len(hero_remaining)
             num_opp_decks = len(opp_remaining)
 
+
             # Build payoff matrix G for deck selection game
             # Rows = Hero's deck choices
             # Columns = Opponent's deck choices
             G = np.zeros((num_hero_decks, num_opp_decks))
+
+            G_hero_names = [j for j in hero_index_to_name if i in hero_remaining]
+            G_opp_names = [j for i, j in opp_index_to_name if i in opp_remaining]
 
             for idx_h, h in enumerate(hero_remaining):
                 for idx_o, o in enumerate(opp_remaining):
@@ -252,39 +249,32 @@ def conquest_nash(W: np.ndarray,
                     # Hero's deck h is eliminated (added to hero_won)
                     # Opponent's deck o remains available
                     win_state = (frozenset(hero_won | {h}), opp_won)
-                    win_value = state_results[win_state]['winrate'][0]
+                    win_value = state_winrates[win_state]
 
                     # If Hero loses:
                     # Hero's deck h remains available
                     # Opponent's deck o is eliminated (added to opp_won)
                     lose_state = (hero_won, frozenset(opp_won | {o}))
-                    lose_value = state_results[lose_state]['winrate'][0]
+                    lose_value = state_winrates[lose_state]
 
                     # Expected value = P(win) * V(win) + P(lose) * V(lose)
                     G[idx_h, idx_o] = W[h, o] * win_value + (1 - W[h, o]) * lose_value
 
             # Solve the deck selection game to find Nash equilibrium
-            solution = _solve_game_internal(G)
+            solution = solve_game(G, G_hero_names, G_opp_names)
 
-            V = solution['V']
-            V_opp = 1.0 - V
-
-            result['winrate'] = (V, V_opp)
-            result['nash'] = (solution['hero_sol'], solution['opp_sol'])
-            result['game'] = G
+            V = solution.value
 
         # Store result for lookup by future states
-        state_results[(hero_won, opp_won)] = result
+        state_winrates[(hero_won, opp_won)] = V
 
         new_state = ConquestStateSolution(
-            hero_won = result['score'][0],
-            opp_won = result['score'][1],
-            winrate = result['winrate'],
-            hero_probs = result['nash'][0],
-            opp_probs = result['nash'][1],
             hero_names=hero_names,
-            opp_names=opp_names
-            )
+            opp_names=opp_names,
+            hero_won=hero_won,
+            opp_won=opp_won,
+            solution = solution
+        )
         results_list.append(new_state)
 
-    return ConquestResult(results_list, deck_names)
+    return ConquestResult(results_list, hero_names, opp_names)

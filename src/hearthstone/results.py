@@ -22,23 +22,14 @@ class GameSolution:
         Opponent's optimal mixed strategy as [(name, probability), ...].
     """
 
-    def __init__(self, value: float, hero_probs: np.ndarray, opp_probs: np.ndarray,
-                 hero_names: List[str], opp_names: List[str]):
-        self._value = value
-        self._hero_probs = hero_probs
-        self._opp_probs = opp_probs
-        self._hero_names = hero_names
-        self._opp_names = opp_names
-
-    @property
-    def hero_strategy(self) -> List[Tuple[str, float]]:
-        """Hero's optimal mixed strategy as [(name, probability), ...]."""
-        return list(zip(self._hero_names, self._hero_probs))
-
-    @property
-    def opp_strategy(self) -> List[Tuple[str, float]]:
-        """Opponent's optimal mixed strategy as [(name, probability), ...]."""
-        return list(zip(self._opp_names, self._opp_probs))
+    def __init__(self, value: float,
+                 hero_names: List[str], opp_names: List[str],
+                 hero_strategy: List[Tuple[str, float]], opp_strategy: List[Tuple[str, float]]):
+        self.value = value
+        self.hero_names = hero_names
+        self.opp_names = opp_names
+        self.hero_strategy = hero_strategy
+        self.opp_strategy = opp_strategy
 
     def __repr__(self) -> str:
         lines = [
@@ -82,14 +73,18 @@ class ConquestStateSolution:
         Opponent's optimal deck selection.
     """
  
-    def __init__(self, hero_won: Tuple, opp_won: Tuple, winrate: float, 
-                 hero_probs: np.ndarray, opp_probs: np.ndarray, 
-                 hero_names: List[str], opp_names: List[str]):
-        self.hero_won = hero_won
-        self.opp_won = opp_won
-        self.winrate = winrate
-        self.hero_prons = hero_probs
-        self.opp_probs = opp_probs
+    def __init__(self, hero_names: List[str], opp_names: List[str],
+                 hero_won: Tuple, opp_won: Tuple, 
+                 solution: GameSolution
+                 ):
+        self._hero_names = hero_names
+        self._opp_names = opp_names
+        self._hero_won = hero_won
+        self._opp_won = opp_won
+
+        self.winrate = solution.value
+        self.hero_strategy = solution.hero_strategy
+        self.opp_strategy = solution.opp_strategy
 
     def __repr__(self) -> str:
         lines = [
@@ -119,6 +114,103 @@ class ConquestStateSolution:
                 lines.append(f"  {name:<12} {prob:>6.1%}")
 
         return "\n".join(lines)
+
+class ConquestResult:
+    """
+    Result from analyzing a Conquest match.
+
+    Provides easy access to the initial state (most common use case) and
+    allows querying any mid-match state.
+
+    Attributes
+    ----------
+    deck_names : list of str
+        Names of the decks.
+    winrate : float
+        Hero's match winrate from the initial state.
+    hero_strategy : list of (str, float)
+        Hero's optimal initial deck selection.
+    opp_strategy : list of (str, float)
+        Opponent's optimal initial deck selection.
+    """
+
+    def __init__(self, states: List[ConquestStateSolution], hero_names: List[str], opp_names: List[str]):
+        self._states = states
+        self._hero_names = hero_names
+        self._opp_names = opp_names
+
+        # Find initial state (last element, where score is ((), ()))
+        self._initial = states[-1]
+
+
+    @property
+    def winrate(self) -> float:
+        """Hero's match winrate from initial state."""
+        return self._initial.winrate
+
+    @property
+    def hero_strategy(self) -> List[Tuple[str, float]]:
+        """Hero's optimal deck selection at initial state."""
+        return self._initial.hero_strategy
+
+    @property
+    def opp_strategy(self) -> List[Tuple[str, float]]:
+        """Opponent's optimal deck selection at initial state."""
+        return self._initial.opp_strategy
+
+    def _names_to_indices(self, is_hero: bool, names: List[str]) -> Tuple[int, ...]:
+        """Convert deck names to indices."""
+        indices = []
+        deck_names = self._hero_names if is_hero else self._opp_names
+        for name in names:
+            try:
+                indices.append(self.deck_names.index(name))
+            except ValueError:
+                raise ValueError(f"Unknown deck name: {name}")
+        return tuple(sorted(indices))
+
+    def get_state(self, hero_won: List[str] = None,
+                  opp_won: List[str] = None) -> ConquestStateSolution:
+        """
+        Get a specific game state.
+        """
+        hero_won = hero_won or []
+        opp_won = opp_won or []
+
+        hero_indices = self._names_to_indices(hero_won, is_hero=True)
+        opp_indices = self._names_to_indices(opp_won, is_hero=False)
+
+        for state in self._states:
+            if state.hero_won == hero_indices and state.opp_won == opp_indices:
+                return state
+
+        raise ValueError(f"State not found: hero_won={hero_won}, opp_won={opp_won}")
+
+    def __repr__(self) -> str:
+        lines = [
+            f"Conquest Match Analysis ({self._n} decks)",
+            "═" * 35,
+            f"Match Winrate: {self.winrate:.1%}",
+            "",
+            "Hero Strategy (initial):",
+        ]
+
+        for name, prob in self.hero_strategy:
+            if prob > 1e-6:
+                lines.append(f"  {name:<12} {prob:>6.1%}")
+
+        lines.append("")
+        lines.append("Opponent Strategy (initial):")
+
+        for name, prob in self.opp_strategy:
+            if prob > 1e-6:
+                lines.append(f"  {name:<12} {prob:>6.1%}")
+
+        lines.append("")
+        lines.append(f"States analyzed: {len(self._states)}")
+
+        return "\n".join(lines)
+
 
 
 class LHSState:
@@ -192,165 +284,6 @@ class LHSState:
 
         return "\n".join(lines)
 
-
-class ConquestResult:
-    """
-    Result from analyzing a Conquest match.
-
-    Provides easy access to the initial state (most common use case) and
-    allows querying any mid-match state.
-
-    Attributes
-    ----------
-    deck_names : list of str
-        Names of the decks.
-    winrate : float
-        Hero's match winrate from the initial state.
-    hero_strategy : list of (str, float)
-        Hero's optimal initial deck selection.
-    opp_strategy : list of (str, float)
-        Opponent's optimal initial deck selection.
-    """
-
-    def __init__(self, states: List[Dict[str, Any]], deck_names: List[str]):
-        self._states = states
-        self._deck_names = deck_names
-
-        # Find initial state (last element, where score is ((), ()))
-        self._initial = states[-1]
-
-    @property
-    def deck_names(self) -> List[str]:
-        """Names of all decks."""
-        return self._deck_names
-
-    @property
-    def winrate(self) -> float:
-        """Hero's match winrate from initial state."""
-        return self._initial['winrate'][0]
-
-    @property
-    def hero_strategy(self) -> List[Tuple[str, float]]:
-        """Hero's optimal deck selection at initial state."""
-        if 'nash' not in self._initial:
-            return [(name, 1.0 / self._n) for name in self._deck_names]
-        return list(zip(self._deck_names, self._initial['nash'][0]))
-
-    @property
-    def opp_strategy(self) -> List[Tuple[str, float]]:
-        """Opponent's optimal deck selection at initial state."""
-        if 'nash' not in self._initial:
-            return [(name, 1.0 / self._n) for name in self._deck_names]
-        return list(zip(self._deck_names, self._initial['nash'][1]))
-
-    def _names_to_indices(self, names: List[str]) -> Tuple[int, ...]:
-        """Convert deck names to indices."""
-        indices = []
-        for name in names:
-            if isinstance(name, int):
-                indices.append(name)
-            else:
-                try:
-                    indices.append(self._deck_names.index(name))
-                except ValueError:
-                    raise ValueError(f"Unknown deck name: {name}")
-        return tuple(sorted(indices))
-
-    def _indices_to_names(self, indices: Tuple[int, ...]) -> List[str]:
-        """Convert indices to deck names."""
-        return [self._deck_names[i] for i in indices]
-
-    def get_state(self, hero_won: List[str] = None,
-                  opp_won: List[str] = None) -> ConquestState:
-        """
-        Get a specific game state.
-
-        Parameters
-        ----------
-        hero_won : list of str, optional
-            Decks that Hero has won with. Default: [] (initial state).
-        opp_won : list of str, optional
-            Decks that Opponent has won with. Default: [] (initial state).
-
-        Returns
-        -------
-        ConquestState
-            The requested state with winrate and strategies.
-        """
-        hero_won = hero_won or []
-        opp_won = opp_won or []
-
-        hero_indices = self._names_to_indices(hero_won)
-        opp_indices = self._names_to_indices(opp_won)
-
-        for state in self._states:
-            if state['score'] == (hero_indices, opp_indices):
-                # Determine remaining decks for strategy
-                hero_remaining = [i for i in range(self._n) if i not in hero_indices]
-                opp_remaining = [i for i in range(self._n) if i not in opp_indices]
-
-                hero_names_remaining = [self._deck_names[i] for i in hero_remaining]
-                opp_names_remaining = [self._deck_names[i] for i in opp_remaining]
-
-                if 'nash' in state:
-                    hero_strat = list(zip(hero_names_remaining, state['nash'][0]))
-                    opp_strat = list(zip(opp_names_remaining, state['nash'][1]))
-                else:
-                    # Terminal or near-terminal state
-                    if len(hero_remaining) > 0:
-                        hero_strat = [(name, 1.0 / len(hero_remaining)) for name in hero_names_remaining]
-                    else:
-                        hero_strat = []
-                    if len(opp_remaining) > 0:
-                        opp_strat = [(name, 1.0 / len(opp_remaining)) for name in opp_names_remaining]
-                    else:
-                        opp_strat = []
-
-                return ConquestState(
-                    hero_won=self._indices_to_names(hero_indices),
-                    opp_won=self._indices_to_names(opp_indices),
-                    winrate=state['winrate'][0],
-                    hero_strategy=hero_strat,
-                    opp_strategy=opp_strat
-                )
-
-        raise ValueError(f"State not found: hero_won={hero_won}, opp_won={opp_won}")
-
-    def all_states(self) -> List[ConquestState]:
-        """Get all states for advanced analysis."""
-        result = []
-        for state in self._states:
-            hero_indices, opp_indices = state['score']
-            result.append(self.get_state(
-                hero_won=list(hero_indices),
-                opp_won=list(opp_indices)
-            ))
-        return result
-
-    def __repr__(self) -> str:
-        lines = [
-            f"Conquest Match Analysis ({self._n} decks)",
-            "═" * 35,
-            f"Match Winrate: {self.winrate:.1%}",
-            "",
-            "Hero Strategy (initial):",
-        ]
-
-        for name, prob in self.hero_strategy:
-            if prob > 1e-6:
-                lines.append(f"  {name:<12} {prob:>6.1%}")
-
-        lines.append("")
-        lines.append("Opponent Strategy (initial):")
-
-        for name, prob in self.opp_strategy:
-            if prob > 1e-6:
-                lines.append(f"  {name:<12} {prob:>6.1%}")
-
-        lines.append("")
-        lines.append(f"States analyzed: {len(self._states)}")
-
-        return "\n".join(lines)
 
 
 class LHSResult:
@@ -667,18 +600,9 @@ class BanResult:
         except ValueError:
             raise ValueError(f"Invalid opp bans: {opp_bans}")
 
-        match_states = self._matches[hero_idx][opp_idx]
-
-        # Determine remaining deck names after bans
-        remaining_indices = [i for i in range(self._n)
-                           if i not in hero_ban_indices and i not in opp_ban_indices]
-        remaining_names = [self._deck_names[i] for i in remaining_indices]
-
-        # Create appropriate result type
-        if self._match_format == 'conquest':
-            return ConquestResult(match_states, remaining_names)
-        else:
-            return LHSResult(match_states, remaining_names)
+        # Return the stored match result directly
+        # (already a ConquestResult or LHSResult object)
+        return self._matches[hero_idx][opp_idx]
 
     def __repr__(self) -> str:
         bans_per_player = len(self._stratlist_hero[0]) if self._stratlist_hero else 0

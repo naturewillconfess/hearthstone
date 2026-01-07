@@ -38,7 +38,7 @@ Note: At most one of havetoplay_hero or havetoplay_opp can be non-None at a time
 import numpy as np
 from itertools import combinations
 from typing import List, Optional
-from .solve_game import _solve_game_internal
+from .solve_game import solve_game
 from .results import LHSResult
 
 def _lhs_nash_internal(W: np.ndarray) -> list:
@@ -300,11 +300,11 @@ def _lhs_nash_internal(W: np.ndarray) -> list:
 
                     G[0, idx_o] = W[h, o] * win_value + (1 - W[h, o]) * lose_value
 
-                solution = _solve_game_internal(G)
-                V = solution['V']
+                solution = solve_game(G)
+                V = solution.value
                 V_opp = 1.0 - V
                 result['winrate'] = (V, V_opp)
-                result['nash'] = (solution['hero_sol'], solution['opp_sol'])
+                result['nash'] = (solution.hero_probs, solution.opp_probs)
                 result['game'] = G
 
             # ---------------------------------------------------------
@@ -332,11 +332,11 @@ def _lhs_nash_internal(W: np.ndarray) -> list:
 
                     G[idx_h, 0] = W[h, o] * win_value + (1 - W[h, o]) * lose_value
 
-                solution = _solve_game_internal(G)
-                V = solution['V']
+                solution = solve_game(G)
+                V = solution.value
                 V_opp = 1.0 - V
                 result['winrate'] = (V, V_opp)
-                result['nash'] = (solution['hero_sol'], solution['opp_sol'])
+                result['nash'] = (solution.hero_probs, solution.opp_probs)
                 result['game'] = G
 
             # ---------------------------------------------------------
@@ -364,11 +364,11 @@ def _lhs_nash_internal(W: np.ndarray) -> list:
 
                         G[idx_h, idx_o] = W[h, o] * win_value + (1 - W[h, o]) * lose_value
 
-                solution = _solve_game_internal(G)
-                V = solution['V']
+                solution = solve_game(G)
+                V = solution.value
                 V_opp = 1.0 - V
                 result['winrate'] = (V, V_opp)
-                result['nash'] = (solution['hero_sol'], solution['opp_sol'])
+                result['nash'] = (solution.hero_probs, solution.opp_probs)
                 result['game'] = G
 
         # Store result for lookup

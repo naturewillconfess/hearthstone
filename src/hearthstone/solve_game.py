@@ -1,5 +1,7 @@
 import numpy as np
 from scipy.optimize import linprog
+from typing import List, Optional
+from .results import GameSolution
 
 def solve_game(W: np.ndarray,
                hero_names: Optional[List[str]] = None,
@@ -69,6 +71,9 @@ Returns
         - ``opp_strategy``: list of (name, probability) tuples.
 """
 
+    #W = np.array([3, 5, 1, 6, 2, 4, 1, 4, 3, 4, 2, 5]).reshape(3, 4, order='F')
+    #hero_names = None
+    #opp_names = None
     W = np.asarray(W, dtype=float)
     m, n = W.shape
 
@@ -169,11 +174,14 @@ Returns
     hero_sol = hero_sol / np.sum(hero_sol)
     opp_sol = opp_sol / np.sum(opp_sol)
 
+    hero_strategy = list(zip(hero_names, hero_sol))
+    opp_strategy = list(zip(opp_names, opp_sol))
+
     return GameSolution(
         value=V,
-        hero_probs=hero_sol,
-        opp_probs=opp_sol,
         hero_names=hero_names,
-        opp_names=opp_names
+        opp_names=opp_names,
+        hero_strategy=hero_strategy,
+        opp_strategy=opp_strategy
     )
     

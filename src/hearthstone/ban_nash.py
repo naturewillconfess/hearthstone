@@ -35,9 +35,9 @@ Algorithm:
 import numpy as np
 from itertools import combinations
 from typing import List, Optional
-from .solve_game import _solve_game_internal
-from .conquest_nash import _conquest_nash_internal
-from .lhs_nash import _lhs_nash_internal
+from .solve_game import solve_game
+from .conquest_nash import conquest_nash
+from .lhs_nash import lhs_nash
 from .results import BanResult
 
 
@@ -134,9 +134,9 @@ def ban_nash(W: np.ndarray, bans: int, match_format: str = 'conquest',
 
     # Select the appropriate Nash calculator based on format
     if match_format == 'conquest':
-        nash_fn = _conquest_nash_internal
+        nash_fn = conquest_nash
     else:  # lhs
-        nash_fn = _lhs_nash_internal
+        nash_fn = lhs_nash
 
 
     # Generate all C(n, bans) combinations for each player
@@ -190,18 +190,16 @@ def ban_nash(W: np.ndarray, bans: int, match_format: str = 'conquest',
             # Store the full match result for later retrieval
             matches[i][j] = match_result
 
-            # The last element contains the initial state (empty score)
-            # Its winrate gives us the overall match probability
-            initial_state = match_result[-1]
-            hero_winrate = initial_state['winrate'][0]
+            # Get the overall match probability from the result object
+            hero_winrate = match_result.winrate
 
             G[i, j] = hero_winrate
 
-    solution = _solve_game_internal(G)
+    solution = solve_game(G)
 
-    hero_ban_strategy = solution['hero_sol']
-    opp_ban_strategy = solution['opp_sol']
-    overall_winrate = solution['V']
+    hero_ban_strategy = solution.hero_probs
+    opp_ban_strategy = solution.opp_probs
+    overall_winrate = solution.value
 
     raw_result = {
         'bans': {
