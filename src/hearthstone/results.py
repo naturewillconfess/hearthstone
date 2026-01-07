@@ -396,10 +396,12 @@ class BanResult:
     """
     Result from analyzing a ban phase.
 
+    Provides access to the optimal ban strategies for both players, the overall
+    match winrate after optimal banning, and the underlying ConquestResult or
+    LHSResult objects for each ban combination.
+
     Attributes
     ----------
-    deck_names : list of str
-        Names of all decks (before bans).
     winrate : float
         Hero's expected winrate after optimal banning.
     hero_ban_strategy : list of (tuple of str, float)
@@ -408,103 +410,113 @@ class BanResult:
         Opponent's optimal ban strategy.
     """
 
-    def __init__(self, raw_result: Dict[str, Any], deck_names: List[str],
+    def __init__(self, solution: 'GameSolution',
+                 hero_names: List[str], opp_names: List[str],
                  match_format: str, matches: List[List[Any]],
-                 stratlist_hero: List[Tuple[int, ...]],
-                 stratlist_opp: List[Tuple[int, ...]]):
-        self._raw = raw_result
-        self._deck_names = deck_names
+                 hero_ban_options: List[Tuple[int, ...]],
+                 opp_ban_options: List[Tuple[int, ...]]):
+        self._solution = solution
+        self.hero_names = hero_names
+        self.opp_names = opp_names
         self._match_format = match_format
-        self._matches = matches
-        self._stratlist_hero = stratlist_hero
-        self._stratlist_opp = stratlist_opp
-        self._n = len(deck_names)
-
-    @property
-    def deck_names(self) -> List[str]:
-        """Names of all decks."""
-        return self._deck_names
+        self.all_matches = matches
+        self._hero_ban_options = hero_ban_options
+        self._opp_ban_options = opp_ban_options
 
     @property
     def winrate(self) -> float:
         """Hero's expected winrate after optimal banning."""
-        return self._raw['winrate'][0]
-
-    def _indices_to_names(self, indices: Tuple[int, ...]) -> Tuple[str, ...]:
-        """Convert ban indices to names."""
-        return tuple(self._deck_names[i] for i in indices)
+        return self._solution.value
 
     @property
     def hero_ban_strategy(self) -> List[Tuple[Tuple[str, ...], float]]:
-        """Hero's optimal ban strategy as [((decks), probability), ...]."""
-        probs = self._raw['bans']['hero']
+        """
+        Hero's optimal ban strategy.
+
+        Returns list of ((banned_deck_names), probability) tuples.
+        Hero bans opponent's decks.
+        """
         result = []
-        for indices, prob in zip(self._stratlist_hero, probs):
-            names = self._indices_to_names(indices)
+        for (_, prob), indices in zip(self._solution.hero_strategy, self._hero_ban_options):
+            names = tuple(self.opp_names[i] for i in indices)
             result.append((names, prob))
         return result
 
     @property
     def opp_ban_strategy(self) -> List[Tuple[Tuple[str, ...], float]]:
-        """Opponent's optimal ban strategy."""
-        probs = self._raw['bans']['opp']
+        """
+        Opponent's optimal ban strategy.
+
+        Returns list of ((banned_deck_names), probability) tuples.
+        Opponent bans Hero's decks.
+        """
         result = []
-        for indices, prob in zip(self._stratlist_opp, probs):
-            names = self._indices_to_names(indices)
+        for (_, prob), indices in zip(self._solution.opp_strategy, self._opp_ban_options):
+            names = tuple(self.hero_names[i] for i in indices)
             result.append((names, prob))
         return result
 
-    def get_match(self, hero_bans: List[str],
-                  opp_bans: List[str]) -> 'ConquestResult | LHSResult':
+    def get_match(self, hero_bans: List[str] = None,
+                  opp_bans: List[str] = None) -> 'ConquestResult | LHSResult':
         """
         Get the match analysis for specific ban choices.
 
         Parameters
         ----------
         hero_bans : list of str
-            Decks banned by Hero.
+            Opponent's decks banned by Hero.
         opp_bans : list of str
-            Decks banned by Opponent.
+            Hero's decks banned by Opponent.
 
         Returns
         -------
         ConquestResult or LHSResult
             The match analysis after the specified bans.
+
+        Examples
+        --------
+        >>> result = ban_nash(W, bans=1, hero_names=['A', 'B', 'C'],
+        ...                   opp_names=['X', 'Y', 'Z'], match_format='conquest')
+        >>> # Get match where Hero bans 'X' and Opponent bans 'A'
+        >>> match = result.get_match(hero_bans=['X'], opp_bans=['A'])
+        >>> print(match.winrate)
         """
-        # Convert names to indices
+        hero_bans = hero_bans or []
+        opp_bans = opp_bans or []
+
+        # Convert names to indices - Hero bans opponent's decks
         hero_ban_indices = tuple(sorted(
-            self._deck_names.index(name) if isinstance(name, str) else name
-            for name in hero_bans
+            self.opp_names.index(name) for name in hero_bans
         ))
+        # Opponent bans Hero's decks
         opp_ban_indices = tuple(sorted(
-            self._deck_names.index(name) if isinstance(name, str) else name
-            for name in opp_bans
+            self.hero_names.index(name) for name in opp_bans
         ))
 
-        # Find the match
+        # Find the indices in our ban options lists
         try:
-            hero_idx = self._stratlist_hero.index(hero_ban_indices)
+            hero_idx = self._hero_ban_options.index(hero_ban_indices)
         except ValueError:
-            raise ValueError(f"Invalid hero bans: {hero_bans}")
+            raise ValueError(f"Invalid hero bans: {hero_bans}. Hero must ban opponent's decks.")
 
         try:
-            opp_idx = self._stratlist_opp.index(opp_ban_indices)
+            opp_idx = self._opp_ban_options.index(opp_ban_indices)
         except ValueError:
-            raise ValueError(f"Invalid opp bans: {opp_bans}")
+            raise ValueError(f"Invalid opp bans: {opp_bans}. Opponent must ban Hero's decks.")
 
-        # Return the stored match result directly
-        # (already a ConquestResult or LHSResult object)
-        return self._matches[hero_idx][opp_idx]
+        return self.all_matches[hero_idx][opp_idx]
 
     def __repr__(self) -> str:
-        bans_per_player = len(self._stratlist_hero[0]) if self._stratlist_hero else 0
+        bans_per_player = len(self._hero_ban_options[0]) if self._hero_ban_options else 0
+        n_hero = len(self.hero_names)
+        n_opp = len(self.opp_names)
 
         lines = [
-            f"Ban Phase Analysis ({self._n} decks, {bans_per_player} ban, {self._match_format})",
+            f"Ban Phase Analysis ({n_hero}v{n_opp} decks, {bans_per_player} ban, {self._match_format})",
             "═" * 50,
             f"Winrate after bans: {self.winrate:.1%}",
             "",
-            "Hero Ban Strategy:",
+            "Hero Ban Strategy (banning opponent's decks):",
         ]
 
         for names, prob in self.hero_ban_strategy:
@@ -513,11 +525,14 @@ class BanResult:
                 lines.append(f"  Ban ({ban_str:<15}) {prob:>6.1%}")
 
         lines.append("")
-        lines.append("Opponent Ban Strategy:")
+        lines.append("Opponent Ban Strategy (banning Hero's decks):")
 
         for names, prob in self.opp_ban_strategy:
             if prob > 1e-6:
                 ban_str = ", ".join(names)
                 lines.append(f"  Ban ({ban_str:<15}) {prob:>6.1%}")
+
+        lines.append("")
+        lines.append(f"Ban combinations: {len(self._hero_ban_options)} x {len(self._opp_ban_options)}")
 
         return "\n".join(lines)

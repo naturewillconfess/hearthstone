@@ -41,8 +41,10 @@ from .lhs_nash import lhs_nash
 from .results import BanResult
 
 
-def ban_nash(W: np.ndarray, bans: int, match_format: str = 'conquest',
-             deck_names: Optional[List[str]] = None) -> BanResult:
+def ban_nash(W: np.ndarray, bans: int,
+             hero_names: Optional[List[str]] = None,
+             opp_names: Optional[List[str]] = None,
+             match_format: str = 'conquest') -> BanResult:
     """
     Find optimal ban strategy for a tournament match.
 
@@ -118,13 +120,17 @@ def ban_nash(W: np.ndarray, bans: int, match_format: str = 'conquest',
     if bans >= n:
         raise ValueError(f"Too many bans ({bans}) for {n} decks")
 
-    # Default deck names
-    if deck_names is None:
-        deck_names = [f"Deck {i}" for i in range(n)]
+    # Default names
+    if hero_names is None:
+        hero_names = [f"Deck {i}" for i in range(n)]
+    if opp_names is None:
+        opp_names = [f"Deck {i}" for i in range(n)]
 
-    # Validate deck names
-    if len(deck_names) != n:
-        raise ValueError(f"deck_names has {len(deck_names)} elements, expected {n}")
+    # Validate names
+    if len(hero_names) != n:
+        raise ValueError(f"hero_names has {len(hero_names)} elements, expected {n}")
+    if len(opp_names) != n:
+        raise ValueError(f"opp_names has {len(opp_names)} elements, expected {n}")
 
     # Validate match format
     valid_formats = {'conquest', 'lhs'}
@@ -139,8 +145,13 @@ def ban_nash(W: np.ndarray, bans: int, match_format: str = 'conquest',
         nash_fn = lhs_nash
 
 
-    # Generate all C(n, bans) combinations for each player
-    # Each combination is a tuple of deck indices to ban
+    # =========================================================================
+    # STEP 1: GENERATE ALL POSSIBLE BAN COMBINATIONS
+    # =========================================================================
+    # Each combination is a tuple of deck indices to ban.
+    # hero_ban_options: tuples of opponent deck indices that Hero can ban
+    # opp_ban_options: tuples of hero deck indices that Opponent can ban
+    # =========================================================================
     hero_ban_options = list(combinations(range(n), bans))
     opp_ban_options = list(combinations(range(n), bans))
 
@@ -148,16 +159,17 @@ def ban_nash(W: np.ndarray, bans: int, match_format: str = 'conquest',
     num_opp_options = len(opp_ban_options)
 
     # =========================================================================
-    # STEP 2: BUILD PAYOFF MATRIX FOR BAN PHASE AND SOLVE THE GAME
+    # STEP 2: BUILD PAYOFF MATRIX FOR BAN PHASE
     # =========================================================================
     # G[i,j] = P(Hero wins match) when:
-    #   - Hero bans hero_ban_options[i] (these decks from Opponent)
-    #   - Opponent bans opp_ban_options[j] (these decks from Hero)
+    #   - Hero bans hero_ban_options[i] (opponent's decks)
+    #   - Opponent bans opp_ban_options[j] (Hero's decks)
     #
-    # To compute this, we:
-    # 1. Remove banned rows (Hero's banned decks) and columns (Opp's banned decks)
-    # 2. Run the match analysis (conquest_nash or lhs_nash) on reduced W
-    # 3. Extract the initial state winrate
+    # For each combination, we:
+    # 1. Compute remaining decks after bans
+    # 2. Create the reduced winrate matrix
+    # 3. Pass the correct deck NAMES to the match solver
+    # 4. Store the ConquestResult/LHSResult for later retrieval
     # =========================================================================
 
     # Payoff matrix for the ban phase game
@@ -166,54 +178,49 @@ def ban_nash(W: np.ndarray, bans: int, match_format: str = 'conquest',
     # Store full match results for reference
     matches = [[None for _ in range(num_opp_options)] for _ in range(num_hero_options)]
 
-    for i, hero_bans in enumerate(hero_ban_options):
-        for j, opp_bans in enumerate(opp_ban_options):
-            # hero_bans: tuple of opponent deck indices that Hero bans (columns to remove)
-            # opp_bans: tuple of hero deck indices that Opponent bans (rows to remove)
+    for i, hero_bans_idx in enumerate(hero_ban_options):
+        for j, opp_bans_idx in enumerate(opp_ban_options):
+            # hero_bans_idx: tuple of opponent deck indices that Hero bans
+            # opp_bans_idx: tuple of hero deck indices that Opponent bans
 
-            # Create the reduced winrate matrix after bans
-            # Remove rows corresponding to opp_bans (Hero's banned decks)
-            # Remove columns corresponding to hero_bans (Opponent's banned decks)
-            # Note: We need to delete in a way that handles index shifting
+            # Get the remaining deck indices after bans
+            # Hero's remaining decks (after opponent banned some)
+            hero_decks_remaining = [r for r in range(n) if r not in opp_bans_idx]
+            # Opponent's remaining decks (after hero banned some)
+            opp_decks_remaining = [c for c in range(n) if c not in hero_bans_idx]
 
-            # Get the rows and columns to keep
-            hero_decks_remaining = [r for r in range(n) if r not in opp_bans]
-            opp_decks_remaining = [c for c in range(n) if c not in hero_bans]
+            # Get the NAMES for remaining decks - this preserves identity through index shifting
+            hero_remaining_names = [hero_names[r] for r in hero_decks_remaining]
+            opp_remaining_names = [opp_names[c] for c in opp_decks_remaining]
 
-            # Extract the reduced matrix
+            # Extract the reduced winrate matrix
             # W_reduced[i', j'] = W[hero_decks_remaining[i'], opp_decks_remaining[j']]
             W_reduced = W[np.ix_(hero_decks_remaining, opp_decks_remaining)]
 
-            # Run the match analysis on the reduced matrix
-            match_result = nash_fn(W_reduced)
+            # Run the match analysis on the reduced matrix WITH CORRECT NAMES
+            match_result = nash_fn(W_reduced, hero_remaining_names, opp_remaining_names)
 
             # Store the full match result for later retrieval
             matches[i][j] = match_result
 
             # Get the overall match probability from the result object
-            hero_winrate = match_result.winrate
+            G[i, j] = match_result.winrate
 
-            G[i, j] = hero_winrate
+    # =========================================================================
+    # STEP 3: SOLVE THE BAN PHASE GAME
+    # =========================================================================
+    # Create names for the ban strategies (for the ban game matrix)
+    hero_ban_names = [f"Ban {tuple(opp_names[i] for i in idx)}" for idx in hero_ban_options]
+    opp_ban_names = [f"Ban {tuple(hero_names[i] for i in idx)}" for idx in opp_ban_options]
 
-    solution = solve_game(G)
-
-    hero_ban_strategy = solution.hero_probs
-    opp_ban_strategy = solution.opp_probs
-    overall_winrate = solution.value
-
-    raw_result = {
-        'bans': {
-            'hero': hero_ban_strategy,
-            'opp': opp_ban_strategy
-        },
-        'winrate': (overall_winrate, 1.0 - overall_winrate)
-    }
+    solution = solve_game(G, hero_ban_names, opp_ban_names)
 
     return BanResult(
-        raw_result=raw_result,
-        deck_names=deck_names,
+        solution=solution,
+        hero_names=hero_names,
+        opp_names=opp_names,
         match_format=match_format,
         matches=matches,
-        stratlist_hero=hero_ban_options,
-        stratlist_opp=opp_ban_options
+        hero_ban_options=hero_ban_options,
+        opp_ban_options=opp_ban_options
     )

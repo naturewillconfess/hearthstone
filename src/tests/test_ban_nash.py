@@ -6,6 +6,8 @@ for tournament matches with ban phases. Tests include:
 1. Symmetric games (expected 50/50 match winrate after bans)
 2. Statistical calibration with various matrix sizes and ban counts
 3. Both Conquest and LHS formats
+4. Name propagation through nested results
+5. get_match functionality
 
 The test cases are ported from the R package's test-ban_nash.R
 """
@@ -13,7 +15,7 @@ The test cases are ported from the R package's test-ban_nash.R
 import numpy as np
 import pytest
 
-from hearthstone import ban_nash, BanResult
+from hearthstone import ban_nash, BanResult, ConquestResult, LHSResult
 
 
 # Test parameters
@@ -286,19 +288,29 @@ class TestBanNashStructure:
         assert len(result.hero_ban_strategy) == n_ban_options
         assert len(result.opp_ban_strategy) == n_ban_options
 
-    def test_get_match_returns_result(self):
-        """Verify get_match returns a proper match result."""
+    def test_get_match_returns_conquest_result(self):
+        """Verify get_match returns a ConquestResult for conquest format."""
         W = np.random.uniform(0, 1, (4, 4))
         result = ban_nash(W, bans=1, match_format='conquest',
-                         deck_names=['A', 'B', 'C', 'D'])
+                          hero_names=['A', 'B', 'C', 'D'],
+                          opp_names=['W', 'X', 'Y', 'Z'])
 
         # Get a specific match after bans
-        match = result.get_match(hero_bans=['B'], opp_bans=['A'])
+        # Hero bans opponent's deck 'W', Opponent bans Hero's deck 'A'
+        match = result.get_match(hero_bans=['W'], opp_bans=['A'])
 
-        # Should be a ConquestResult for conquest format
-        from hearthstone import ConquestResult
         assert isinstance(match, ConquestResult)
         assert hasattr(match, 'winrate')
+
+    def test_get_match_returns_lhs_result(self):
+        """Verify get_match returns a LHSResult for lhs format."""
+        W = np.random.uniform(0, 1, (4, 4))
+        result = ban_nash(W, bans=1, match_format='lhs',
+                          hero_names=['A', 'B', 'C', 'D'],
+                          opp_names=['W', 'X', 'Y', 'Z'])
+
+        match = result.get_match(hero_bans=['X'], opp_bans=['B'])
+        assert isinstance(match, LHSResult)
 
 
 class TestBanNashErrors:
@@ -324,6 +336,150 @@ class TestBanNashErrors:
         with pytest.raises(ValueError, match="Unknown format"):
             ban_nash(W, bans=1, match_format='invalid')
 
+
+class TestNamePropagation:
+    """
+    Test that deck names are properly propagated through nested structures.
+    """
+
+    def test_names_preserved_after_bans_conquest(self):
+        """Verify deck names are preserved correctly in ConquestResult after bans."""
+        W = np.full((4, 4), 0.5)
+        result = ban_nash(W, bans=1,
+                          hero_names=['Aggro', 'Combo', 'Control', 'Midrange'],
+                          opp_names=['Tempo', 'Ramp', 'Mill', 'Zoo'],
+                          match_format='conquest')
+
+        # Hero bans 'Tempo', Opponent bans 'Aggro'
+        match = result.get_match(hero_bans=['Tempo'], opp_bans=['Aggro'])
+
+        # Hero's remaining decks should be Combo, Control, Midrange (Aggro banned)
+        hero_deck_names = [name for name, _ in match.hero_strategy]
+        assert 'Aggro' not in hero_deck_names
+        assert set(hero_deck_names) == {'Combo', 'Control', 'Midrange'}
+
+        # Opponent's remaining decks should be Ramp, Mill, Zoo (Tempo banned)
+        opp_deck_names = [name for name, _ in match.opp_strategy]
+        assert 'Tempo' not in opp_deck_names
+        assert set(opp_deck_names) == {'Ramp', 'Mill', 'Zoo'}
+
+    def test_names_preserved_after_bans_lhs(self):
+        """Verify deck names are preserved correctly in LHSResult after bans."""
+        W = np.full((4, 4), 0.5)
+        result = ban_nash(W, bans=1,
+                          hero_names=['Aggro', 'Combo', 'Control', 'Midrange'],
+                          opp_names=['Tempo', 'Ramp', 'Mill', 'Zoo'],
+                          match_format='lhs')
+
+        # Hero bans 'Mill', Opponent bans 'Control'
+        match = result.get_match(hero_bans=['Mill'], opp_bans=['Control'])
+
+        hero_deck_names = [name for name, _ in match.hero_strategy]
+        assert set(hero_deck_names) == {'Aggro', 'Combo', 'Midrange'}
+
+        opp_deck_names = [name for name, _ in match.opp_strategy]
+        assert set(opp_deck_names) == {'Tempo', 'Ramp', 'Zoo'}
+
+    def test_names_in_subgame_states(self):
+        """Verify names are correct when querying states within a match."""
+        W = np.full((3, 3), 0.5)
+        result = ban_nash(W, bans=1,
+                          hero_names=['Aggro', 'Combo', 'Control'],
+                          opp_names=['Tempo', 'Ramp', 'Mill'],
+                          match_format='conquest')
+
+        # Hero bans 'Tempo', Opponent bans 'Aggro'
+        match = result.get_match(hero_bans=['Tempo'], opp_bans=['Aggro'])
+
+        # The remaining decks after bans: Combo, Control vs Ramp, Mill
+        # Query a state using the correct remaining deck names
+        state = match.get_state(hero_won=['Combo'], opp_won=[])
+
+        assert state.winrate >= 0 and state.winrate <= 1
+
+        # The hero_strategy in this state should only contain 'Control'
+        # since 'Combo' was already eliminated
+        hero_remaining = [name for name, _ in state.hero_strategy]
+        assert 'Combo' not in hero_remaining
+        assert 'Control' in hero_remaining
+
+    def test_ban_strategy_uses_correct_names(self):
+        """Verify ban strategies reference correct deck names."""
+        W = np.full((3, 3), 0.5)
+        result = ban_nash(W, bans=1,
+                          hero_names=['Aggro', 'Combo', 'Control'],
+                          opp_names=['Tempo', 'Ramp', 'Mill'],
+                          match_format='conquest')
+
+        # Hero bans OPPONENT's decks
+        for names, prob in result.hero_ban_strategy:
+            for name in names:
+                assert name in ['Tempo', 'Ramp', 'Mill'], \
+                    f"Hero should ban opponent's decks, got '{name}'"
+
+        # Opponent bans HERO's decks
+        for names, prob in result.opp_ban_strategy:
+            for name in names:
+                assert name in ['Aggro', 'Combo', 'Control'], \
+                    f"Opponent should ban Hero's decks, got '{name}'"
+
+    def test_2_bans_name_propagation(self):
+        """Test name propagation with 2 bans."""
+        W = np.full((4, 4), 0.5)
+        result = ban_nash(W, bans=2,
+                          hero_names=['A', 'B', 'C', 'D'],
+                          opp_names=['W', 'X', 'Y', 'Z'],
+                          match_format='conquest')
+
+        # Hero bans W and X, Opponent bans A and B
+        match = result.get_match(hero_bans=['W', 'X'], opp_bans=['A', 'B'])
+
+        # Hero has C, D remaining
+        hero_deck_names = [name for name, _ in match.hero_strategy]
+        assert set(hero_deck_names) == {'C', 'D'}
+
+        # Opponent has Y, Z remaining
+        opp_deck_names = [name for name, _ in match.opp_strategy]
+        assert set(opp_deck_names) == {'Y', 'Z'}
+
+
+class TestAllMatches:
+    """
+    Test the all_matches property.
+    """
+
+    def test_all_matches_dimensions(self):
+        """all_matches should have correct dimensions."""
+        W = np.full((4, 4), 0.5)
+        result = ban_nash(W, bans=1,
+                          hero_names=['A', 'B', 'C', 'D'],
+                          opp_names=['W', 'X', 'Y', 'Z'],
+                          match_format='conquest')
+
+        # C(4,1) = 4 options each
+        assert len(result.all_matches) == 4
+        assert all(len(row) == 4 for row in result.all_matches)
+
+    def test_all_matches_dimensions_2_bans(self):
+        """all_matches should have correct dimensions with 2 bans."""
+        W = np.full((4, 4), 0.5)
+        result = ban_nash(W, bans=2,
+                          hero_names=['A', 'B', 'C', 'D'],
+                          opp_names=['W', 'X', 'Y', 'Z'],
+                          match_format='conquest')
+
+        # C(4,2) = 6 options each
+        assert len(result.all_matches) == 6
+        assert all(len(row) == 6 for row in result.all_matches)
+
+    def test_all_matches_are_result_objects(self):
+        """all_matches entries should be ConquestResult or LHSResult."""
+        W = np.full((3, 3), 0.5)
+        result = ban_nash(W, bans=1, match_format='conquest')
+
+        for row in result.all_matches:
+            for match in row:
+                assert isinstance(match, ConquestResult)
 
 if __name__ == '__main__':
     pytest.main([__file__, '-v'])
