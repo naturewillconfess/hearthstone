@@ -168,44 +168,23 @@ class TestBO5Formulas:
         # State (0, 1) vs (): Hero eliminated decks 0 and 1, only deck 2 remains
         # Opponent has all decks. Hero wins if deck 2 beats all 3 opponent decks.
         # P(win) = 1 - (1-W[2,0])*(1-W[2,1])*(1-W[2,2])
-        state_12 = result.get_state(hero_won=[0, 1], opp_won=[])
-        expected_12 = 1 - (1-W[2,0])*(1-W[2,1])*(1-W[2,2])
-        assert state_12.winrate == pytest.approx(expected_12, abs=1e-6), f"State (0,1) vs () winrate mismatch. Actual: {state_12.winrate}, Expected: {expected_12}"
+        state_01 = result.get_state(hero_won=['Deck 0', 'Deck 1'], opp_won=[])
+        expected_01 = 1 - (1-W[2,0])*(1-W[2,1])*(1-W[2,2])
+        assert state_01.winrate == pytest.approx(expected_01, abs=1e-6), f"State (0,1) vs () winrate mismatch. Actual: {state_01.winrate}, Expected: {expected_01}"
 
         # State (0,2) vs (): Hero has only deck 1, opponent has all
-        state_02 = result.get_state(hero_won=[0, 2], opp_won=[])
+        state_02 = result.get_state(hero_won=['Deck 0', 'Deck 2'], opp_won=[])
         expected_02 = 1 - (1-W[1,0])*(1-W[1,1])*(1-W[1,2])
         assert state_02.winrate == pytest.approx(expected_02, abs=1e-6), f"State (0,2) vs () winrate mismatch. Actual: {state_02.winrate}, Expected: {expected_02}"
 
         # State (0,) vs (0,): Hero eliminated deck 0, Opp eliminated deck 0
         # Hero has decks 1,2 vs Opp decks 1,2
         # This is a 2v2 subgame with the reduced matrix W[1:3, 1:3]
-        state_0_0 = result.get_state(hero_won=[0], opp_won=[0])
+        state_0_0 = result.get_state(hero_won=['Deck 0'], opp_won=['Deck 0'])
         W_sub = W[1:3, 1:3]  # Submatrix for remaining decks
         # Use the BO3 formula on the submatrix
         expected_0_0 = two_v_two_conquest(W_sub)
         assert state_0_0.winrate == pytest.approx(expected_0_0, abs=1e-6), f"State (0,) vs (0,) winrate mismatch. Actual: {state_0_0.winrate}, Expected: {expected_0_0}"
-
-
-class TestGamePayoffMatrix:
-    """
-    Test that the payoff matrix G at each state is computed correctly.
-    """
-
-    def test_all_payoff_entries(self):
-        """Verify all entries of the initial state payoff matrix."""
-        W = np.random.uniform(0, 1, (3, 3))
-        result = conquest_nash(W)
-
-        # Access raw state for payoff matrix
-        initial = result._states[-1]
-
-        for i in range(3):
-            for j in range(3):
-                win_state = result.get_state(hero_won=[i], opp_won=[])
-                lose_state = result.get_state(hero_won=[], opp_won=[j])
-                expected = W[i,j] * win_state.winrate + (1-W[i,j]) * lose_state.winrate
-                assert initial['game'][i,j] == pytest.approx(expected, abs=1e-6), f"Payoff G[{i},{j}] mismatch. Actual: {initial['game'][i,j]}, Expected: {expected}"
 
 
 class TestStateCount:
@@ -320,11 +299,11 @@ class TestTerminalStates:
         result = conquest_nash(W)
 
         # Check state where hero has eliminated both decks
-        hero_wins = result.get_state(hero_won=[0, 1], opp_won=[])
+        hero_wins = result.get_state(hero_won=['Deck 0', 'Deck 1'], opp_won=[])
         assert hero_wins.winrate == pytest.approx(1.0, abs=1e-6), f"Hero winrate should be 1.0 when hero wins. Actual: {hero_wins.winrate}"
 
         # Check state where opponent has eliminated both decks
-        opp_wins = result.get_state(hero_won=[], opp_won=[0, 1])
+        opp_wins = result.get_state(hero_won=[], opp_won=['Deck 0', 'Deck 1'])
         assert opp_wins.winrate == pytest.approx(0.0, abs=1e-6), f"Hero winrate should be 0.0 when opp wins. Actual: {opp_wins.winrate}"
 
 

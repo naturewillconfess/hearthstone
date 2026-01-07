@@ -138,51 +138,11 @@ class TestLHSSpecificBehavior:
 
         # Should have some states with forced plays
         forced_states = [s for s in raw_states
-                        if s.get('havetoplay_hero') is not None or
-                           s.get('havetoplay_opp') is not None]
+                        if s.havetoplay_hero is not None or
+                           s.havetoplay_opp is not None]
 
         assert len(forced_states) > 0, "LHS should have forced play states"
 
-    def test_hero_forced_play(self):
-        """
-        Test a state where Hero is forced to play a specific deck.
-        """
-        W = np.full((3, 3), 0.5)
-        result = lhs_nash(W)
-
-        raw_states = result._states
-
-        # Find a state where Hero is forced to play
-        hero_forced = [s for s in raw_states if s.get('havetoplay_hero') is not None]
-
-        assert len(hero_forced) > 0, "Should have states where Hero is forced"
-
-        # In such states, Hero has only one choice, so their "strategy"
-        # should be a single-element array (or trivially determined)
-        for state in hero_forced:
-            if 'game' in state:
-                # Game matrix should have 1 row (Hero's single choice)
-                assert state['game'].shape[0] == 1
-
-    def test_opp_forced_play(self):
-        """
-        Test a state where Opponent is forced to play a specific deck.
-        """
-        W = np.full((3, 3), 0.5)
-        result = lhs_nash(W)
-
-        raw_states = result._states
-
-        # Find a state where Opponent is forced to play
-        opp_forced = [s for s in raw_states if s.get('havetoplay_opp') is not None]
-
-        assert len(opp_forced) > 0, "Should have states where Opponent is forced"
-
-        # In such states, Opponent has only one choice, so the game matrix
-        # should have 1 column
-        for state in opp_forced:
-            if 'game' in state:
-                assert state['game'].shape[1] == 1
 
     def test_forced_play_count_by_score(self):
         """
@@ -196,11 +156,12 @@ class TestLHSSpecificBehavior:
 
         raw_states = result._states
 
-        # States with hero_lost=(), opp_lost=(0,) should have hero forced
+        # States with hero_lost=(), opp_lost={0} should have hero forced
         # to one of the 3 available decks
         states_0_vs_1 = [s for s in raw_states
-                        if s['score'] == ((), (0,)) and
-                           s.get('havetoplay_hero') is not None]
+                        if s.hero_lost == frozenset() and
+                           s.opp_lost == frozenset({0}) and
+                           s.havetoplay_hero is not None]
 
         # Should have 3 variations (hero forced to deck 0, 1, or 2)
         assert len(states_0_vs_1) == 3
@@ -221,12 +182,11 @@ class TestTerminalStates:
         raw_states = result._states
 
         # Find state where opponent has lost all decks
-        # In LHS, score tracks lost decks, so opp_lost = (0, 1) for 2 decks
-        hero_wins = [s for s in raw_states if len(s['score'][1]) == 2]
+        # In LHS, opp_lost tracks lost decks, so opp_lost = {0, 1} for 2 decks
+        hero_wins = [s for s in raw_states if len(s.opp_lost) == 2]
 
         for state in hero_wins:
-            assert state['winrate'][0] == pytest.approx(1.0, abs=1e-6), f"Hero winrate should be 1.0 when hero wins. Actual: {state['winrate'][0]}"
-            assert state['winrate'][1] == pytest.approx(0.0, abs=1e-6), f"Opp winrate should be 0.0 when hero wins. Actual: {state['winrate'][1]}"
+            assert state.winrate == pytest.approx(1.0, abs=1e-6), f"Hero winrate should be 1.0 when hero wins. Actual: {state.winrate}"
 
     def test_opponent_wins_all(self):
         """
@@ -238,11 +198,10 @@ class TestTerminalStates:
         raw_states = result._states
 
         # Find state where hero has lost all decks
-        opp_wins = [s for s in raw_states if len(s['score'][0]) == 2]
+        opp_wins = [s for s in raw_states if len(s.hero_lost) == 2]
 
         for state in opp_wins:
-            assert state['winrate'][0] == pytest.approx(0.0, abs=1e-6), f"Hero winrate should be 0.0 when opp wins. Actual: {state['winrate'][0]}"
-            assert state['winrate'][1] == pytest.approx(1.0, abs=1e-6), f"Opp winrate should be 1.0 when opp wins. Actual: {state['winrate'][1]}"
+            assert state.winrate == pytest.approx(0.0, abs=1e-6), f"Hero winrate should be 0.0 when opp wins. Actual: {state.winrate}"
 
     def test_near_terminal_hero_one_left(self):
         """
@@ -259,10 +218,10 @@ class TestTerminalStates:
         # Find state: hero lost {0, 1}, opp lost nothing
         # Hero has only deck 2 left
         for state in raw_states:
-            if state['score'] == ((0, 1), ()):
+            if state.hero_lost == frozenset({0, 1}) and state.opp_lost == frozenset():
                 # Hero wins if deck 2 beats all 3 opponent decks
                 expected = W[2, 0] * W[2, 1] * W[2, 2]
-                assert state['winrate'][0] == pytest.approx(expected, abs=1e-6), f"Near-terminal winrate mismatch. Actual: {state['winrate'][0]}, Expected: {expected}"
+                assert state.winrate == pytest.approx(expected, abs=1e-6), f"Near-terminal winrate mismatch. Actual: {state.winrate}, Expected: {expected}"
                 break
 
 

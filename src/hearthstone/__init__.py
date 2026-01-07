@@ -7,8 +7,8 @@ from .ban_nash import ban_nash
 # Import result classes for type hints
 from .results import (
     GameSolution,
-    ConquestResult, ConquestState, ConquestStateSolution,
-    LHSResult, LHSState,
+    ConquestResult, ConquestStateSolution,
+    LHSResult, LHSStateSolution,
     BanResult
 )
 
@@ -18,11 +18,10 @@ __all__ = [
     'GameSolution',
     'conquest_nash',
     'ConquestResult',
-    'ConquestState',
     'ConquestStateSolution',
     'lhs_nash',
     'LHSResult',
-    'LHSState',
+    'LHSStateSolution',
     'ban_nash',
     'BanResult'
 ]
