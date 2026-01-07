@@ -271,8 +271,8 @@ def conquest_nash(W: np.ndarray,
             # Columns = Opponent's deck choices
             G = np.zeros((num_hero_decks, num_opp_decks))
 
-            G_hero_names = [j for j in hero_index_to_name if i in hero_remaining]
-            G_opp_names = [j for i, j in opp_index_to_name if i in opp_remaining]
+            G_hero_names = [hero_index_to_name[i] for i in hero_remaining]
+            G_opp_names = [opp_index_to_name[i] for i in opp_remaining]
 
             for idx_h, h in enumerate(hero_remaining):
                 for idx_o, o in enumerate(opp_remaining):

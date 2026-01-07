@@ -134,7 +134,7 @@ class TestLHSSpecificBehavior:
         result = lhs_nash(W)
 
         # Access raw states to check forced play
-        raw_states = result._states
+        raw_states = result.all_states
 
         # Should have some states with forced plays
         forced_states = [s for s in raw_states
@@ -154,7 +154,7 @@ class TestLHSSpecificBehavior:
         W = np.full((3, 3), 0.5)
         result = lhs_nash(W)
 
-        raw_states = result._states
+        raw_states = result.all_states
 
         # States with hero_lost=(), opp_lost={0} should have hero forced
         # to one of the 3 available decks
@@ -179,7 +179,7 @@ class TestTerminalStates:
         W = np.full((2, 2), 0.5)
         result = lhs_nash(W)
 
-        raw_states = result._states
+        raw_states = result.all_states
 
         # Find state where opponent has lost all decks
         # In LHS, opp_lost tracks lost decks, so opp_lost = {0, 1} for 2 decks
@@ -195,7 +195,7 @@ class TestTerminalStates:
         W = np.full((2, 2), 0.5)
         result = lhs_nash(W)
 
-        raw_states = result._states
+        raw_states = result.all_states
 
         # Find state where hero has lost all decks
         opp_wins = [s for s in raw_states if len(s.hero_lost) == 2]
@@ -213,7 +213,7 @@ class TestTerminalStates:
         W = np.random.uniform(0, 1, (3, 3))
         result = lhs_nash(W)
 
-        raw_states = result._states
+        raw_states = result.all_states
 
         # Find state: hero lost {0, 1}, opp lost nothing
         # Hero has only deck 2 left
@@ -312,7 +312,7 @@ class TestOutputStructure:
         assert hasattr(result, 'opp_strategy')
 
         # Should be able to get all states
-        all_states = result.all_states()
+        all_states = result.all_states
         assert len(all_states) > 0
 
     def test_larger_state_count_than_conquest(self):
@@ -325,7 +325,7 @@ class TestOutputStructure:
         conquest_result = conquest_nash(W)
 
         # LHS has more states due to forced play variations
-        assert len(lhs_result.all_states()) > len(conquest_result.all_states())
+        assert len(lhs_result.all_states) > len(conquest_result.all_states)
 
 
 class TestWinrateProperties:
@@ -338,7 +338,7 @@ class TestWinrateProperties:
         W = np.random.uniform(0, 1, (3, 3))
         result = lhs_nash(W)
 
-        all_states = result.all_states()
+        all_states = result.all_states
         for state in all_states:
             assert 0 <= state.winrate <= 1
 

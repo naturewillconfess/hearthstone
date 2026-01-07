@@ -31,11 +31,21 @@ class GameSolution:
         self.hero_strategy = hero_strategy
         self.opp_strategy = opp_strategy
 
+    @property
+    def hero_probs(self) -> np.ndarray:
+        """Hero's strategy probabilities as a numpy array."""
+        return np.array([prob for _, prob in self.hero_strategy])
+
+    @property
+    def opp_probs(self) -> np.ndarray:
+        """Opponent's strategy probabilities as a numpy array."""
+        return np.array([prob for _, prob in self.opp_strategy])
+
     def __repr__(self) -> str:
         lines = [
             "Game Solution",
             "══════════════════════════",
-            f"Value: {self._value:.1%}",
+            f"Value: {self.value:.1%}",
             "",
             "Hero Strategy:",
         ]
@@ -92,8 +102,8 @@ class ConquestStateSolution:
             "══════════════════════════",
         ]
 
-        hero_won_names = [self._hero_names[i] for i in sorted(self._hero_won)]
-        opp_won_names = [self._opp_names[i] for i in sorted(self._opp_won)]
+        hero_won_names = [self._hero_names[i] for i in sorted(self.hero_won)]
+        opp_won_names = [self._opp_names[i] for i in sorted(self.opp_won)]
 
         hero_won_str = ", ".join(hero_won_names) if hero_won_names else "(none)"
         opp_won_str = ", ".join(opp_won_names) if opp_won_names else "(none)"
@@ -172,7 +182,7 @@ class ConquestResult:
         hero_indices = frozenset(self._hero_names.index(name) for name in hero_won)
         opp_indices = frozenset(self._opp_names.index(name) for name in opp_won)
 
-        for state in self._states:
+        for state in self.all_states:
             if state.hero_won == hero_indices and state.opp_won == opp_indices:
                 return state
 
@@ -306,7 +316,7 @@ class LHSResult:
     """
 
     def __init__(self, states: List['LHSStateSolution'], hero_names: List[str], opp_names: List[str]):
-        self._states = states
+        self.all_states = states
         self._hero_names = hero_names
         self._opp_names = opp_names
 
@@ -345,7 +355,7 @@ class LHSResult:
         forced_hero_idx = self._hero_names.index(forced_hero) if forced_hero else None
         forced_opp_idx = self._opp_names.index(forced_opp) if forced_opp else None
 
-        for state in self._states:
+        for state in self.all_states:
             if (state.hero_lost == hero_indices and
                 state.opp_lost == opp_indices and
                 state.havetoplay_hero == forced_hero_idx and
@@ -354,10 +364,6 @@ class LHSResult:
 
         raise ValueError(f"State not found: hero_lost={hero_lost}, opp_lost={opp_lost}, "
                         f"forced_hero={forced_hero}, forced_opp={forced_opp}")
-
-    def all_states(self) -> List['LHSStateSolution']:
-        """Get all states for advanced analysis."""
-        return list(self._states)
 
     def __repr__(self) -> str:
         n = len(self._hero_names)
@@ -381,7 +387,7 @@ class LHSResult:
                 lines.append(f"  {name:<12} {prob:>6.1%}")
 
         lines.append("")
-        lines.append(f"States analyzed: {len(self._states)}")
+        lines.append(f"States analyzed: {len(self.all_states)}")
 
         return "\n".join(lines)
 

@@ -210,7 +210,7 @@ class TestStateCount:
         result = conquest_nash(W)
 
         # For n=2: 4 * 4 - 1 = 15 states
-        assert len(result.all_states()) == 15
+        assert len(result.all_states) == 15
 
     def test_3x3_state_count(self):
         """
@@ -225,7 +225,7 @@ class TestStateCount:
         result = conquest_nash(W)
 
         # For n=3: 8 * 8 - 1 = 63 states
-        assert len(result.all_states()) == 63
+        assert len(result.all_states) == 63
 
 
 class TestAsymmetricMatchups:
