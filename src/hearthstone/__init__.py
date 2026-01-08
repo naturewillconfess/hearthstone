@@ -1,5 +1,5 @@
 # Import main functions for convenient access
-from .solve_game import solve_game
+from .solve_game import solve_game, prewarm_cache
 from .conquest_nash import conquest_nash
 from .lhs_nash import lhs_nash
 from .ban_nash import ban_nash

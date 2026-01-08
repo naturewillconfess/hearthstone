@@ -34,9 +34,19 @@ from itertools import combinations
 from typing import List, Optional, Union
 from concurrent.futures import ProcessPoolExecutor
 import os
-from .solve_game import solve_game
+from .solve_game import solve_game, prewarm_cache
 from .ban_nash import ban_nash
 from .results import LineupResult
+
+
+# Global cache for worker processes (populated by _init_worker)
+_worker_cache = None
+
+
+def _init_worker(W, max_dim):
+    """Initialize worker process by prewarming its own cache."""
+    global _worker_cache
+    _worker_cache = prewarm_cache(W, max_dim=max_dim)
 
 
 def _compute_match(args):
@@ -44,6 +54,7 @@ def _compute_match(args):
     Worker function for parallel computation of a single lineup matchup.
 
     Must be a top-level function to be picklable for multiprocessing.
+    Uses _worker_cache if available (set by _init_worker).
     """
     i, j, W_sub, hero_names, opp_names, bans, match_format = args
 
@@ -52,7 +63,8 @@ def _compute_match(args):
         bans=bans,
         hero_names=hero_names,
         opp_names=opp_names,
-        match_format=match_format
+        match_format=match_format,
+        _cache=_worker_cache
     )
 
     return i, j, ban_result
@@ -234,16 +246,23 @@ def lineup_picker(W: np.ndarray,
         else:
             max_workers = int(parallel)
 
-        with ProcessPoolExecutor(max_workers=max_workers) as executor:
+        # Each worker prewarmes its own cache on startup (faster than serializing)
+        with ProcessPoolExecutor(
+            max_workers=max_workers,
+            initializer=_init_worker,
+            initargs=(W, lineup_size - bans)
+        ) as executor:
             results = list(executor.map(_compute_match, tasks))
 
         for i, j, ban_result in results:
             matches[i][j] = ban_result
             G[i, j] = ban_result.winrate
     else:
-        # Sequential execution
-        for task in tasks:
-            i, j, ban_result = _compute_match(task)
+        # Sequential execution with caching
+        # Cache submatrices up to (lineup_size - bans) which is the conquest game size
+        cache = prewarm_cache(W, max_dim=lineup_size - bans)
+        for i, j, W_sub, hero_names, opp_names, b, fmt in tasks:
+            ban_result = ban_nash(W_sub, b, hero_names, opp_names, fmt, _cache=cache)
             matches[i][j] = ban_result
             G[i, j] = ban_result.winrate
 

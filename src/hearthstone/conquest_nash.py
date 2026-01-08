@@ -26,14 +26,15 @@ The match winner is the first to eliminate ALL their decks.
 
 import numpy as np
 from itertools import combinations
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Dict
 from .solve_game import solve_game
 from .results import ConquestResult, ConquestStateSolution, GameSolution
 
 
 def conquest_nash(W: np.ndarray,
                   hero_names: Optional[List[str]] = None,
-                  opp_names: Optional[List[str]] = None) -> ConquestResult:
+                  opp_names: Optional[List[str]] = None,
+                  _cache: Optional[Dict[bytes, tuple]] = None) -> ConquestResult:
     """
     Find Nash equilibrium for all subgames in a Conquest match.
 
@@ -101,7 +102,6 @@ def conquest_nash(W: np.ndarray,
     if len(opp_names) != n:
         raise ValueError(f"opp_names has {len(opp_names)} elements, expected {n}")
 
-    # Compute all states
     # =========================================================================
     # STEP 1: GENERATE ALL POSSIBLE GAME STATES
     # =========================================================================
@@ -218,7 +218,7 @@ def conquest_nash(W: np.ndarray,
         # -----------------------------------------------------------------
         
         elif hero_wins == n - 1:
-            V = 1-np.prod(1-W[hero_remaining[0], opp_remaining])
+            V = 1 - np.prod(1 - W[hero_remaining[0], opp_remaining])
             G_hero_names = [hero_index_to_name[i] for i in hero_remaining]
             G_opp_names = [opp_index_to_name[i] for i in opp_remaining]
             solution = GameSolution(
@@ -235,7 +235,6 @@ def conquest_nash(W: np.ndarray,
         # Symmetric to Case 3
         # -----------------------------------------------------------------
         elif opp_wins == n - 1:
-            # Remaining decks for each player
             V = np.prod(W[hero_remaining, opp_remaining[0]])
             G_hero_names = [hero_index_to_name[i] for i in hero_remaining]
             G_opp_names = [opp_index_to_name[i] for i in opp_remaining]
@@ -292,7 +291,7 @@ def conquest_nash(W: np.ndarray,
                     G[idx_h, idx_o] = W[h, o] * win_value + (1 - W[h, o]) * lose_value
 
             # Solve the deck selection game to find Nash equilibrium
-            solution = solve_game(G, G_hero_names, G_opp_names)
+            solution = solve_game(G, G_hero_names, G_opp_names, _cache=_cache)
 
             V = solution.value
 

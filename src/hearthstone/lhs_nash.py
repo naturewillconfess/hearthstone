@@ -37,14 +37,15 @@ Note: At most one of havetoplay_hero or havetoplay_opp can be non-None at a time
 
 import numpy as np
 from itertools import combinations
-from typing import List, Optional
+from typing import List, Optional, Dict
 from .solve_game import solve_game
 from .results import LHSResult, LHSStateSolution, GameSolution
 
 
 def lhs_nash(W: np.ndarray,
              hero_names: Optional[List[str]] = None,
-             opp_names: Optional[List[str]] = None) -> LHSResult:
+             opp_names: Optional[List[str]] = None,
+             _cache: Optional[Dict[bytes, tuple]] = None) -> LHSResult:
     """
     Find Nash equilibrium for all subgames in a Last Hero Standing match.
 
@@ -337,7 +338,7 @@ def lhs_nash(W: np.ndarray,
 
                 G_hero_names = [hero_index_to_name[h]]
                 G_opp_names = [opp_index_to_name[i] for i in opp_remaining]
-                solution = solve_game(G, G_hero_names, G_opp_names)
+                solution = solve_game(G, G_hero_names, G_opp_names, _cache=_cache)
                 V = solution.value
 
             # ---------------------------------------------------------
@@ -367,7 +368,7 @@ def lhs_nash(W: np.ndarray,
 
                 G_hero_names = [hero_index_to_name[i] for i in hero_remaining]
                 G_opp_names = [opp_index_to_name[o]]
-                solution = solve_game(G, G_hero_names, G_opp_names)
+                solution = solve_game(G, G_hero_names, G_opp_names, _cache=_cache)
                 V = solution.value
 
             # ---------------------------------------------------------
@@ -397,7 +398,7 @@ def lhs_nash(W: np.ndarray,
 
                 G_hero_names = [hero_index_to_name[i] for i in hero_remaining]
                 G_opp_names = [opp_index_to_name[i] for i in opp_remaining]
-                solution = solve_game(G, G_hero_names, G_opp_names)
+                solution = solve_game(G, G_hero_names, G_opp_names, _cache=_cache)
                 V = solution.value
 
         # Store winrate for lookup by future states

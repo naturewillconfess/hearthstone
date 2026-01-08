@@ -34,7 +34,7 @@ Algorithm:
 
 import numpy as np
 from itertools import combinations
-from typing import List, Optional
+from typing import List, Optional, Dict
 from .solve_game import solve_game
 from .conquest_nash import conquest_nash
 from .lhs_nash import lhs_nash
@@ -44,7 +44,8 @@ from .results import BanResult
 def ban_nash(W: np.ndarray, bans: int,
              hero_names: Optional[List[str]] = None,
              opp_names: Optional[List[str]] = None,
-             match_format: str = 'conquest') -> BanResult:
+             match_format: str = 'conquest',
+             _cache: Optional[Dict[bytes, tuple]] = None) -> BanResult:
     """
     Find optimal ban strategy for a tournament match.
 
@@ -198,7 +199,7 @@ def ban_nash(W: np.ndarray, bans: int,
             W_reduced = W[np.ix_(hero_decks_remaining, opp_decks_remaining)]
 
             # Run the match analysis on the reduced matrix WITH CORRECT NAMES
-            match_result = nash_fn(W_reduced, hero_remaining_names, opp_remaining_names)
+            match_result = nash_fn(W_reduced, hero_remaining_names, opp_remaining_names, _cache=_cache)
 
             # Store the full match result for later retrieval
             matches[i][j] = match_result
