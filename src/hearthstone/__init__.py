@@ -3,13 +3,15 @@ from .solve_game import solve_game
 from .conquest_nash import conquest_nash
 from .lhs_nash import lhs_nash
 from .ban_nash import ban_nash
+from .lineup_picker import lineup_picker
 
 # Import result classes for type hints
 from .results import (
     GameSolution,
     ConquestResult, ConquestStateSolution,
     LHSResult, LHSStateSolution,
-    BanResult
+    BanResult,
+    LineupResult
 )
 
 # Define public API
@@ -23,7 +25,9 @@ __all__ = [
     'LHSResult',
     'LHSStateSolution',
     'ban_nash',
-    'BanResult'
+    'BanResult',
+    'lineup_picker',
+    'LineupResult'
 ]
 
 # Package version

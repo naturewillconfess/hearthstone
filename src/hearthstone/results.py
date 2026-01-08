@@ -536,3 +536,163 @@ class BanResult:
         lines.append(f"Ban combinations: {len(self._hero_ban_options)} x {len(self._opp_ban_options)}")
 
         return "\n".join(lines)
+
+
+class LineupResult:
+    """
+    Result from analyzing a lineup selection game.
+
+    In a lineup selection game, each player picks a lineup of k decks from
+    a shared pool of n available decks. After lineups are chosen, the match
+    proceeds with the specified format (conquest/lhs) and ban rules.
+
+    Attributes
+    ----------
+    winrate : float
+        Hero's expected winrate after optimal lineup selection.
+    hero_lineup_strategy : list of (tuple of str, float)
+        Hero's optimal lineup selection as [((deck_names), probability), ...].
+    opp_lineup_strategy : list of (tuple of str, float)
+        Opponent's optimal lineup selection.
+    """
+
+    def __init__(self, solution: 'GameSolution',
+                 deck_names: List[str],
+                 lineup_size: int,
+                 bans: int,
+                 match_format: str,
+                 matches: List[List['BanResult']],
+                 lineup_options: List[Tuple[int, ...]],
+                 W: Optional[np.ndarray] = None,
+                 symmetric: bool = False):
+        self._solution = solution
+        self.deck_names = deck_names
+        self._lineup_size = lineup_size
+        self._bans = bans
+        self._match_format = match_format
+        self.all_matches = matches
+        self._lineup_options = lineup_options
+        self._W = W  # Stored for on-demand computation in symmetric mode
+        self._symmetric = symmetric
+
+    @property
+    def winrate(self) -> float:
+        """Hero's expected winrate after optimal lineup selection."""
+        return self._solution.value
+
+    @property
+    def hero_lineup_strategy(self) -> List[Tuple[Tuple[str, ...], float]]:
+        """
+        Hero's optimal lineup selection.
+
+        Returns list of ((deck_names), probability) tuples.
+        """
+        result = []
+        for (_, prob), indices in zip(self._solution.hero_strategy, self._lineup_options):
+            names = tuple(self.deck_names[i] for i in indices)
+            result.append((names, prob))
+        return result
+
+    @property
+    def opp_lineup_strategy(self) -> List[Tuple[Tuple[str, ...], float]]:
+        """
+        Opponent's optimal lineup selection.
+
+        Returns list of ((deck_names), probability) tuples.
+        """
+        result = []
+        for (_, prob), indices in zip(self._solution.opp_strategy, self._lineup_options):
+            names = tuple(self.deck_names[i] for i in indices)
+            result.append((names, prob))
+        return result
+
+    def get_match(self, hero_lineup: List[str],
+                  opp_lineup: List[str]) -> 'BanResult':
+        """
+        Get the ban phase analysis for specific lineup choices.
+
+        Parameters
+        ----------
+        hero_lineup : list of str
+            Decks in Hero's lineup.
+        opp_lineup : list of str
+            Decks in Opponent's lineup.
+
+        Returns
+        -------
+        BanResult
+            The ban phase analysis for the specified lineups.
+        """
+        # Convert names to indices
+        hero_lineup_indices = tuple(sorted(
+            self.deck_names.index(name) for name in hero_lineup
+        ))
+        opp_lineup_indices = tuple(sorted(
+            self.deck_names.index(name) for name in opp_lineup
+        ))
+
+        # Find the indices in our lineup options
+        try:
+            hero_idx = self._lineup_options.index(hero_lineup_indices)
+        except ValueError:
+            raise ValueError(f"Invalid hero lineup: {hero_lineup}")
+
+        try:
+            opp_idx = self._lineup_options.index(opp_lineup_indices)
+        except ValueError:
+            raise ValueError(f"Invalid opp lineup: {opp_lineup}")
+
+        result = self.all_matches[hero_idx][opp_idx]
+
+        # Handle symmetric case: lower triangle entries are computed on-demand
+        if result is None and self._symmetric:
+            # Import here to avoid circular dependency
+            from .ban_nash import ban_nash
+
+            # Compute ban_nash for this matchup
+            hero_names = [self.deck_names[k] for k in hero_lineup_indices]
+            opp_names = [self.deck_names[k] for k in opp_lineup_indices]
+            W_sub = self._W[np.ix_(list(hero_lineup_indices), list(opp_lineup_indices))]
+
+            result = ban_nash(
+                W_sub,
+                bans=self._bans,
+                hero_names=hero_names,
+                opp_names=opp_names,
+                match_format=self._match_format
+            )
+
+            # Cache for future lookups
+            self.all_matches[hero_idx][opp_idx] = result
+
+        return result
+
+    def __repr__(self) -> str:
+        n_pool = len(self.deck_names)
+        n_lineups = len(self._lineup_options)
+
+        lines = [
+            f"Lineup Selection ({n_pool} deck pool, pick {self._lineup_size}, {self._bans} ban, {self._match_format})",
+            "═" * 60,
+            f"Winrate: {self.winrate:.1%}",
+            "",
+            "Hero Lineup Strategy:",
+        ]
+
+        for names, prob in self.hero_lineup_strategy:
+            if prob > 1e-6:
+                lineup_str = ", ".join(names)
+                lines.append(f"  [{lineup_str}] {prob:>6.1%}")
+
+        lines.append("")
+        lines.append("Opponent Lineup Strategy:")
+
+        for names, prob in self.opp_lineup_strategy:
+            if prob > 1e-6:
+                lineup_str = ", ".join(names)
+                lines.append(f"  [{lineup_str}] {prob:>6.1%}")
+
+        lines.append("")
+        lines.append(f"Lineup combinations: {n_lineups} x {n_lineups}")
+
+        return "\n".join(lines)

@@ -33,7 +33,7 @@ cd docs && make html
 # Output in docs/_build/html/
 ```
 
-**Dependencies:** numpy, scipy (installed automatically via pip)
+**Dependencies:** numpy, highspy (installed automatically via pip)
 
 ## Architecture
 
@@ -79,5 +79,5 @@ The winrate matrix `W` is the primary input: `W[i,j]` = probability that Hero's 
 
 ### Key Dependencies
 
-- scipy (linprog)
+- highspy (HiGHS LP solver)
 - numpy
