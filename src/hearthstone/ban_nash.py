@@ -75,8 +75,11 @@ def ban_nash(W: np.ndarray, bans: int,
 
         Default is 'conquest'.
 
-    deck_names : list of str, optional
-        Names for each deck. Default: ['Deck 0', 'Deck 1', ...].
+    hero_names : list of str, optional
+        Names for Hero's decks. Default: ['Deck 0', 'Deck 1', ...].
+
+    opp_names : list of str, optional
+        Names for Opponent's decks. Default: ['Deck 0', 'Deck 1', ...].
 
     Returns
     -------
@@ -105,7 +108,8 @@ def ban_nash(W: np.ndarray, bans: int,
     ...     [0.5, 0.4, 0.6, 0.5]
     ... ])
     >>> result = ban_nash(W, bans=1, match_format='conquest',
-    ...                   deck_names=['Aggro', 'Combo', 'Control', 'Midrange'])
+    ...                   hero_names=['Aggro', 'Combo', 'Control', 'Midrange'],
+    ...                   opp_names=['Aggro', 'Combo', 'Control', 'Midrange'])
     >>> print(f"Win probability: {result.winrate:.1%}")
     >>> print(result.hero_ban_strategy)
 

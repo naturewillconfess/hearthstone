@@ -540,6 +540,13 @@ def lhs_nash(W: np.ndarray,
     >>> print(f"Winrate from this state: {state.winrate:.1%}")
     """
     W = np.asarray(W, dtype=float)
+
+    # Validate input
+    if W.ndim != 2:
+        raise ValueError(f"W must be a 2D array, got {W.ndim}D")
+    if W.shape[0] < 1 or W.shape[1] < 1:
+        raise ValueError(f"W must have at least 1 row and 1 column, got shape {W.shape}")
+
     n = W.shape[0]
 
     # Default names

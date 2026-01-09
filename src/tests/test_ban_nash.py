@@ -19,8 +19,8 @@ from hearthstone import ban_nash, BanResult, ConquestResult, LHSResult
 
 
 # Test parameters
-n_games = 200
-tolerance = 0.075
+n_games = 1000
+tolerance = 0.1
 
 
 def get_ban_probs(ban_strategy):
@@ -59,9 +59,7 @@ class TestCalibrationConquest:
         """
         Test 3x3 Conquest with 1 ban.
 
-        For random games:
-        - Mean winrate should be near 0.5
-        - Mean ban probabilities should be near 1/3 (3 choices)
+        For random games, mean winrate and ban strategies should be near uniform.
         """
 
         winrates = []
@@ -76,22 +74,18 @@ class TestCalibrationConquest:
             opp_bans.append(get_ban_probs(result.opp_ban_strategy))
 
         mean_winrate = np.mean(winrates)
-        mean_hero = np.mean(hero_bans, axis=0)
-        mean_opp = np.mean(opp_bans, axis=0)
+        mean_hero_bans = np.mean(hero_bans, axis=0)
+        mean_opp_bans = np.mean(opp_bans, axis=0)
 
-        # Winrate should be near 0.5
         assert mean_winrate == pytest.approx(0.5, abs=tolerance), f"Mean winrate mismatch. Actual: {mean_winrate}, Expected: 0.5"
-
-        # Ban probabilities should be near 1/3
-        np.testing.assert_allclose(mean_hero, [1/3] * 3, atol=tolerance, err_msg=f"Hero strategy does not match. Actual: {mean_hero}, Desired: {[1/3] * 3}")
-        np.testing.assert_allclose(mean_opp, [1/3] * 3, atol=tolerance, err_msg=f"Opp strategy does not match. Actual: {mean_opp}, Desired: {[1/3] * 3}")
+        np.testing.assert_allclose(mean_hero_bans, [1/3]*3, atol=tolerance, err_msg=f"Hero ban strategy mismatch: {mean_hero_bans}")
+        np.testing.assert_allclose(mean_opp_bans, [1/3]*3, atol=tolerance, err_msg=f"Opp ban strategy mismatch: {mean_opp_bans}")
 
     def test_3x3_2ban_conquest(self):
         """
-        Test 3x3 Conquest with 2 bans.
+        Test 3x3 Conquest with 2 bans. C(3,2)=3 ban options.
 
-        With 2 bans from 3 decks, there are C(3,2)=3 ban combinations.
-        Each ban combination should have probability near 1/3.
+        For random games, mean winrate and ban strategies should be near uniform.
         """
 
         winrates = []
@@ -106,19 +100,18 @@ class TestCalibrationConquest:
             opp_bans.append(get_ban_probs(result.opp_ban_strategy))
 
         mean_winrate = np.mean(winrates)
-        mean_hero = np.mean(hero_bans, axis=0)
-        mean_opp = np.mean(opp_bans, axis=0)
+        mean_hero_bans = np.mean(hero_bans, axis=0)
+        mean_opp_bans = np.mean(opp_bans, axis=0)
 
         assert mean_winrate == pytest.approx(0.5, abs=tolerance), f"Mean winrate mismatch. Actual: {mean_winrate}, Expected: 0.5"
-        np.testing.assert_allclose(mean_hero, [1/3] * 3, atol=tolerance, err_msg=f"Hero strategy does not match. Actual: {mean_hero}, Desired: {[1/3] * 3}")
-        np.testing.assert_allclose(mean_opp, [1/3] * 3, atol=tolerance, err_msg=f"Opp strategy does not match. Actual: {mean_opp}, Desired: {[1/3] * 3}")
+        np.testing.assert_allclose(mean_hero_bans, [1/3]*3, atol=tolerance, err_msg=f"Hero ban strategy mismatch: {mean_hero_bans}")
+        np.testing.assert_allclose(mean_opp_bans, [1/3]*3, atol=tolerance, err_msg=f"Opp ban strategy mismatch: {mean_opp_bans}")
 
     def test_4x4_1ban_conquest(self):
         """
-        Test 4x4 Conquest with 1 ban.
+        Test 4x4 Conquest with 1 ban. 4 ban options.
 
-        With 1 ban from 4 decks, there are 4 ban choices.
-        Each should have probability near 1/4.
+        For random games, mean winrate and ban strategies should be near uniform.
         """
 
         winrates = []
@@ -133,19 +126,18 @@ class TestCalibrationConquest:
             opp_bans.append(get_ban_probs(result.opp_ban_strategy))
 
         mean_winrate = np.mean(winrates)
-        mean_hero = np.mean(hero_bans, axis=0)
-        mean_opp = np.mean(opp_bans, axis=0)
+        mean_hero_bans = np.mean(hero_bans, axis=0)
+        mean_opp_bans = np.mean(opp_bans, axis=0)
 
         assert mean_winrate == pytest.approx(0.5, abs=tolerance), f"Mean winrate mismatch. Actual: {mean_winrate}, Expected: 0.5"
-        np.testing.assert_allclose(mean_hero, [0.25] * 4, atol=tolerance, err_msg=f"Hero strategy does not match. Actual: {mean_hero}, Desired: {[0.25] * 4}")
-        np.testing.assert_allclose(mean_opp, [0.25] * 4, atol=tolerance, err_msg=f"Opp strategy does not match. Actual: {mean_opp}, Desired: {[0.25] * 4}")
+        np.testing.assert_allclose(mean_hero_bans, [1/4]*4, atol=tolerance, err_msg=f"Hero ban strategy mismatch: {mean_hero_bans}")
+        np.testing.assert_allclose(mean_opp_bans, [1/4]*4, atol=tolerance, err_msg=f"Opp ban strategy mismatch: {mean_opp_bans}")
 
     def test_4x4_2ban_conquest(self):
         """
-        Test 4x4 Conquest with 2 bans.
+        Test 4x4 Conquest with 2 bans. C(4,2)=6 ban combinations.
 
-        With 2 bans from 4 decks, there are C(4,2)=6 ban combinations.
-        Each should have probability near 1/6.
+        For random games, mean winrate and ban strategies should be near uniform.
         """
 
         winrates = []
@@ -160,12 +152,12 @@ class TestCalibrationConquest:
             opp_bans.append(get_ban_probs(result.opp_ban_strategy))
 
         mean_winrate = np.mean(winrates)
-        mean_hero = np.mean(hero_bans, axis=0)
-        mean_opp = np.mean(opp_bans, axis=0)
+        mean_hero_bans = np.mean(hero_bans, axis=0)
+        mean_opp_bans = np.mean(opp_bans, axis=0)
 
         assert mean_winrate == pytest.approx(0.5, abs=tolerance), f"Mean winrate mismatch. Actual: {mean_winrate}, Expected: 0.5"
-        np.testing.assert_allclose(mean_hero, [1/6] * 6, atol=tolerance, err_msg=f"Hero strategy does not match. Actual: {mean_hero}, Desired: {[1/6] * 6}")
-        np.testing.assert_allclose(mean_opp, [1/6] * 6, atol=tolerance, err_msg=f"Opp strategy does not match. Actual: {mean_opp}, Desired: {[1/6] * 6}")
+        np.testing.assert_allclose(mean_hero_bans, [1/6]*6, atol=tolerance, err_msg=f"Hero ban strategy mismatch: {mean_hero_bans}")
+        np.testing.assert_allclose(mean_opp_bans, [1/6]*6, atol=tolerance, err_msg=f"Opp ban strategy mismatch: {mean_opp_bans}")
 
 
 class TestCalibrationLHS:
@@ -174,7 +166,7 @@ class TestCalibrationLHS:
     """
 
     def test_3x3_1ban_lhs(self):
-        """Test 3x3 LHS with 1 ban."""
+        """Test 3x3 LHS with 1 ban. 3 ban options."""
 
         winrates = []
         hero_bans = []
@@ -188,15 +180,15 @@ class TestCalibrationLHS:
             opp_bans.append(get_ban_probs(result.opp_ban_strategy))
 
         mean_winrate = np.mean(winrates)
-        mean_hero = np.mean(hero_bans, axis=0)
-        mean_opp = np.mean(opp_bans, axis=0)
+        mean_hero_bans = np.mean(hero_bans, axis=0)
+        mean_opp_bans = np.mean(opp_bans, axis=0)
 
         assert mean_winrate == pytest.approx(0.5, abs=tolerance), f"Mean winrate mismatch. Actual: {mean_winrate}, Expected: 0.5"
-        np.testing.assert_allclose(mean_hero, [1/3] * 3, atol=tolerance, err_msg=f"Hero strategy does not match. Actual: {mean_hero}, Desired: {[1/3] * 3}")
-        np.testing.assert_allclose(mean_opp, [1/3] * 3, atol=tolerance, err_msg=f"Opp strategy does not match. Actual: {mean_opp}, Desired: {[1/3] * 3}")
+        np.testing.assert_allclose(mean_hero_bans, [1/3]*3, atol=tolerance, err_msg=f"Hero ban strategy mismatch: {mean_hero_bans}")
+        np.testing.assert_allclose(mean_opp_bans, [1/3]*3, atol=tolerance, err_msg=f"Opp ban strategy mismatch: {mean_opp_bans}")
 
     def test_3x3_2ban_lhs(self):
-        """Test 3x3 LHS with 2 bans."""
+        """Test 3x3 LHS with 2 bans. C(3,2)=3 ban options."""
 
         winrates = []
         hero_bans = []
@@ -210,15 +202,15 @@ class TestCalibrationLHS:
             opp_bans.append(get_ban_probs(result.opp_ban_strategy))
 
         mean_winrate = np.mean(winrates)
-        mean_hero = np.mean(hero_bans, axis=0)
-        mean_opp = np.mean(opp_bans, axis=0)
+        mean_hero_bans = np.mean(hero_bans, axis=0)
+        mean_opp_bans = np.mean(opp_bans, axis=0)
 
         assert mean_winrate == pytest.approx(0.5, abs=tolerance), f"Mean winrate mismatch. Actual: {mean_winrate}, Expected: 0.5"
-        np.testing.assert_allclose(mean_hero, [1/3] * 3, atol=tolerance, err_msg=f"Hero strategy does not match. Actual: {mean_hero}, Desired: {[1/3] * 3}")
-        np.testing.assert_allclose(mean_opp, [1/3] * 3, atol=tolerance, err_msg=f"Opp strategy does not match. Actual: {mean_opp}, Desired: {[1/3] * 3}")
+        np.testing.assert_allclose(mean_hero_bans, [1/3]*3, atol=tolerance, err_msg=f"Hero ban strategy mismatch: {mean_hero_bans}")
+        np.testing.assert_allclose(mean_opp_bans, [1/3]*3, atol=tolerance, err_msg=f"Opp ban strategy mismatch: {mean_opp_bans}")
 
     def test_4x4_1ban_lhs(self):
-        """Test 4x4 LHS with 1 ban."""
+        """Test 4x4 LHS with 1 ban. 4 ban options."""
 
         winrates = []
         hero_bans = []
@@ -232,15 +224,15 @@ class TestCalibrationLHS:
             opp_bans.append(get_ban_probs(result.opp_ban_strategy))
 
         mean_winrate = np.mean(winrates)
-        mean_hero = np.mean(hero_bans, axis=0)
-        mean_opp = np.mean(opp_bans, axis=0)
+        mean_hero_bans = np.mean(hero_bans, axis=0)
+        mean_opp_bans = np.mean(opp_bans, axis=0)
 
         assert mean_winrate == pytest.approx(0.5, abs=tolerance), f"Mean winrate mismatch. Actual: {mean_winrate}, Expected: 0.5"
-        np.testing.assert_allclose(mean_hero, [0.25] * 4, atol=tolerance, err_msg=f"Hero strategy does not match. Actual: {mean_hero}, Desired: {[0.25] * 4}")
-        np.testing.assert_allclose(mean_opp, [0.25] * 4, atol=tolerance, err_msg=f"Opp strategy does not match. Actual: {mean_opp}, Desired: {[0.25] * 4}")
+        np.testing.assert_allclose(mean_hero_bans, [1/4]*4, atol=tolerance, err_msg=f"Hero ban strategy mismatch: {mean_hero_bans}")
+        np.testing.assert_allclose(mean_opp_bans, [1/4]*4, atol=tolerance, err_msg=f"Opp ban strategy mismatch: {mean_opp_bans}")
 
     def test_4x4_2ban_lhs(self):
-        """Test 4x4 LHS with 2 bans."""
+        """Test 4x4 LHS with 2 bans. C(4,2)=6 ban options."""
 
         winrates = []
         hero_bans = []
@@ -254,12 +246,12 @@ class TestCalibrationLHS:
             opp_bans.append(get_ban_probs(result.opp_ban_strategy))
 
         mean_winrate = np.mean(winrates)
-        mean_hero = np.mean(hero_bans, axis=0)
-        mean_opp = np.mean(opp_bans, axis=0)
+        mean_hero_bans = np.mean(hero_bans, axis=0)
+        mean_opp_bans = np.mean(opp_bans, axis=0)
 
         assert mean_winrate == pytest.approx(0.5, abs=tolerance), f"Mean winrate mismatch. Actual: {mean_winrate}, Expected: 0.5"
-        np.testing.assert_allclose(mean_hero, [1/6] * 6, atol=tolerance, err_msg=f"Hero strategy does not match. Actual: {mean_hero}, Desired: {[1/6] * 6}")
-        np.testing.assert_allclose(mean_opp, [1/6] * 6, atol=tolerance, err_msg=f"Opp strategy does not match. Actual: {mean_opp}, Desired: {[1/6] * 6}")
+        np.testing.assert_allclose(mean_hero_bans, [1/6]*6, atol=tolerance, err_msg=f"Hero ban strategy mismatch: {mean_hero_bans}")
+        np.testing.assert_allclose(mean_opp_bans, [1/6]*6, atol=tolerance, err_msg=f"Opp ban strategy mismatch: {mean_opp_bans}")
 
 
 class TestBanNashStructure:

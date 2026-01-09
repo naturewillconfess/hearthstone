@@ -17,6 +17,7 @@ from .results import (
 # Define public API
 __all__ = [
     'solve_game',
+    'prewarm_cache',
     'GameSolution',
     'conquest_nash',
     'ConquestResult',
@@ -27,8 +28,9 @@ __all__ = [
     'ban_nash',
     'BanResult',
     'lineup_picker',
-    'LineupResult'
+    'LineupResult',
 ]
 
-# Package version
-__version__ = '0.1.0'
+# Package version - read from pyproject.toml via importlib.metadata
+from importlib.metadata import version as _get_version
+__version__ = _get_version('hearthstone')

@@ -336,8 +336,11 @@ def conquest_nash(W: np.ndarray,
         - W[i,j] = probability that Hero's deck i beats Opponent's deck j
         - Values should be between 0 and 1
 
-    deck_names : list of str, optional
-        Names for each deck. Default: ['Deck 0', 'Deck 1', ...].
+    hero_names : list of str, optional
+        Names for Hero's decks. Default: ['Deck 0', 'Deck 1', ...].
+
+    opp_names : list of str, optional
+        Names for Opponent's decks. Default: ['Deck 0', 'Deck 1', ...].
 
     winrate_only : bool, optional
         If True, use fast analytical solvers (2-2.5x faster for n=2,3) that
@@ -362,7 +365,8 @@ def conquest_nash(W: np.ndarray,
     >>> import numpy as np
     >>> # Simple 2-deck match with equal matchups
     >>> W = np.array([[0.5, 0.5], [0.5, 0.5]])
-    >>> result = conquest_nash(W, deck_names=['Aggro', 'Control'])
+    >>> result = conquest_nash(W, hero_names=['Aggro', 'Control'],
+    ...                        opp_names=['Aggro', 'Control'])
     >>> print(f"Match winrate: {result.winrate:.1%}")
     Match winrate: 50.0%
 
@@ -375,8 +379,14 @@ def conquest_nash(W: np.ndarray,
     >>> print(f"Winrate from this state: {state.winrate:.1%}")
     """
     W = np.asarray(W, dtype=float)
-    n = W.shape[0]
 
+    # Validate input
+    if W.ndim != 2:
+        raise ValueError(f"W must be a 2D array, got {W.ndim}D")
+    if W.shape[0] < 1 or W.shape[1] < 1:
+        raise ValueError(f"W must have at least 1 row and 1 column, got shape {W.shape}")
+
+    n = W.shape[0]
 
     # Default names
     if hero_names is None:

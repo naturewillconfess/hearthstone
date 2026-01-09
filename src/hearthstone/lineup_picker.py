@@ -34,6 +34,7 @@ from itertools import combinations
 from typing import List, Optional, Union
 from concurrent.futures import ProcessPoolExecutor
 import os
+from tqdm import tqdm
 from .solve_game import solve_game, prewarm_cache
 from .ban_nash import ban_nash
 from .results import LineupResult
@@ -78,7 +79,8 @@ def lineup_picker(W: np.ndarray,
                   match_format: str = 'conquest',
                   parallel: Union[bool, int] = False,
                   symmetric: bool = False,
-                  winrate_only: bool = True) -> LineupResult:
+                  winrate_only: bool = True,
+                  progress: bool = False) -> LineupResult:
     """
     Find optimal lineup selection strategy for a tournament.
 
@@ -142,6 +144,10 @@ def lineup_picker(W: np.ndarray,
 
         Set to False if you need to call result.get_match() and then
         drill down into the conquest/lhs states (e.g., conquest_result.get_state()).
+
+    progress : bool, optional
+        If True, display a tqdm progress bar during computation.
+        Default is False.
 
     Returns
     -------
@@ -262,7 +268,10 @@ def lineup_picker(W: np.ndarray,
             initializer=_init_worker,
             initargs=(W, lineup_size - bans)
         ) as executor:
-            results = list(executor.map(_compute_match, tasks))
+            iterator = executor.map(_compute_match, tasks)
+            if progress:
+                iterator = tqdm(iterator, total=len(tasks), desc="Computing matchups")
+            results = list(iterator)
 
         for i, j, ban_result in results:
             matches[i][j] = ban_result
@@ -271,7 +280,10 @@ def lineup_picker(W: np.ndarray,
         # Sequential execution with caching
         # Cache submatrices up to (lineup_size - bans) which is the conquest game size
         cache = prewarm_cache(W, max_dim=lineup_size - bans)
-        for i, j, W_sub, hero_names, opp_names, b, fmt, wo in tasks:
+        task_iter = tasks
+        if progress:
+            task_iter = tqdm(tasks, desc="Computing matchups")
+        for i, j, W_sub, hero_names, opp_names, b, fmt, wo in task_iter:
             ban_result = ban_nash(W_sub, b, hero_names, opp_names, fmt, _cache=cache,
                                   winrate_only=wo)
             matches[i][j] = ban_result

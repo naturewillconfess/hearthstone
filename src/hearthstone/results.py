@@ -25,6 +25,7 @@ class GameSolution:
     def __init__(self, value: float,
                  hero_names: List[str], opp_names: List[str],
                  hero_strategy: List[Tuple[str, float]], opp_strategy: List[Tuple[str, float]]):
+        """Initialize a GameSolution with the equilibrium value and strategies."""
         self.value = value
         self.hero_names = hero_names
         self.opp_names = opp_names
@@ -84,9 +85,10 @@ class ConquestStateSolution:
     """
  
     def __init__(self, hero_names: List[str], opp_names: List[str],
-                 hero_won: Tuple, opp_won: Tuple, 
+                 hero_won: Tuple, opp_won: Tuple,
                  solution: GameSolution
                  ):
+        """Initialize a ConquestStateSolution for a specific game state."""
         self._hero_names = hero_names
         self._opp_names = opp_names
         self.hero_won = hero_won
@@ -148,6 +150,7 @@ class ConquestResult:
     """
 
     def __init__(self, states: List[ConquestStateSolution], hero_names: List[str], opp_names: List[str]):
+        """Initialize a ConquestResult with all computed game states."""
         self.all_states = states
         self._hero_names = hero_names
         self._opp_names = opp_names
@@ -242,6 +245,7 @@ class LHSStateSolution:
                  hero_lost: Tuple, opp_lost: Tuple,
                  havetoplay_hero: Optional[int], havetoplay_opp: Optional[int],
                  solution: GameSolution):
+        """Initialize an LHSStateSolution for a specific game state."""
         self._hero_names = hero_names
         self._opp_names = opp_names
         self.hero_lost = hero_lost
@@ -316,6 +320,7 @@ class LHSResult:
     """
 
     def __init__(self, states: List['LHSStateSolution'], hero_names: List[str], opp_names: List[str]):
+        """Initialize an LHSResult with all computed game states."""
         self.all_states = states
         self._hero_names = hero_names
         self._opp_names = opp_names
@@ -415,6 +420,7 @@ class BanResult:
                  match_format: str, matches: List[List[Any]],
                  hero_ban_options: List[Tuple[int, ...]],
                  opp_ban_options: List[Tuple[int, ...]]):
+        """Initialize a BanResult with the ban phase solution and match results."""
         self._solution = solution
         self.hero_names = hero_names
         self.opp_names = opp_names
@@ -565,6 +571,7 @@ class LineupResult:
                  lineup_options: List[Tuple[int, ...]],
                  W: Optional[np.ndarray] = None,
                  symmetric: bool = False):
+        """Initialize a LineupResult with the lineup selection solution."""
         self._solution = solution
         self.deck_names = deck_names
         self._lineup_size = lineup_size

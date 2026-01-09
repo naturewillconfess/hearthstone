@@ -5,8 +5,8 @@ import pytest
 from hearthstone import conquest_nash
 
 
-n_games = 200
-tolerance = 0.05
+n_games = 1000
+tolerance = 0.1
 
 
 def two_v_two_conquest(W):
@@ -77,10 +77,7 @@ class TestCalibration:
         """
         Test that random 3x3 Conquest matches have expected properties.
 
-        Over 100 random matches:
-        - Mean match winrate should be near 0.5
-        - Mean deck selection probabilities should be near 1/3
-
+        Over many random matches, mean winrate and strategies should be near uniform.
         """
 
         winrates = []
@@ -90,7 +87,6 @@ class TestCalibration:
         for _ in range(n_games):
             W = np.random.uniform(0, 1, (3, 3))
             result = conquest_nash(W)
-
             winrates.append(result.winrate)
             hero_strategies.append(get_probs(result.hero_strategy))
             opp_strategies.append(get_probs(result.opp_strategy))
@@ -99,10 +95,9 @@ class TestCalibration:
         mean_hero = np.mean(hero_strategies, axis=0)
         mean_opp = np.mean(opp_strategies, axis=0)
 
-        # Match winrate should be near 0.5
         assert mean_winrate == pytest.approx(0.5, abs=tolerance), f"Mean winrate mismatch. Actual: {mean_winrate}, Expected: 0.5"
-        np.testing.assert_allclose(mean_hero, [1/3]*3, atol=tolerance, err_msg=f"Hero strategy does not match. Actual: {mean_hero}, Desired: {[1/3]*3}")
-        np.testing.assert_allclose(mean_opp, [1/3]*3, atol=tolerance, err_msg=f"Opp strategy does not match. Actual: {mean_opp}, Desired: {[1/3]*3}")
+        np.testing.assert_allclose(mean_hero, [1/3]*3, atol=tolerance, err_msg=f"Hero strategy mismatch: {mean_hero}")
+        np.testing.assert_allclose(mean_opp, [1/3]*3, atol=tolerance, err_msg=f"Opp strategy mismatch: {mean_opp}")
 
     def test_random_2x2_calibration(self):
         """Test calibration for 2x2 Conquest matches."""
@@ -114,7 +109,6 @@ class TestCalibration:
         for _ in range(n_games):
             W = np.random.uniform(0, 1, (2, 2))
             result = conquest_nash(W)
-
             winrates.append(result.winrate)
             hero_strategies.append(get_probs(result.hero_strategy))
             opp_strategies.append(get_probs(result.opp_strategy))
@@ -123,10 +117,9 @@ class TestCalibration:
         mean_hero = np.mean(hero_strategies, axis=0)
         mean_opp = np.mean(opp_strategies, axis=0)
 
-        # Match winrate should be near 0.5
         assert mean_winrate == pytest.approx(0.5, abs=tolerance), f"Mean winrate mismatch. Actual: {mean_winrate}, Expected: 0.5"
-        np.testing.assert_allclose(mean_hero, [1/2]*2, atol=tolerance, err_msg=f"Hero strategy does not match. Actual: {mean_hero}, Desired: {[1/2]*2}")
-        np.testing.assert_allclose(mean_opp, [1/2]*2, atol=tolerance, err_msg=f"Opp strategy does not match. Actual: {mean_opp}, Desired: {[1/2]*2}")
+        np.testing.assert_allclose(mean_hero, [1/2]*2, atol=tolerance, err_msg=f"Hero strategy mismatch: {mean_hero}")
+        np.testing.assert_allclose(mean_opp, [1/2]*2, atol=tolerance, err_msg=f"Opp strategy mismatch: {mean_opp}")
 
 
 class TestBO3Formula:

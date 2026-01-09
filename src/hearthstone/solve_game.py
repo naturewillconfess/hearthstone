@@ -476,6 +476,13 @@ Returns
 """
 
     W = np.asarray(W, dtype=float)
+
+    # Validate input
+    if W.ndim != 2:
+        raise ValueError(f"W must be a 2D array, got {W.ndim}D")
+    if W.shape[0] == 0 or W.shape[1] == 0:
+        raise ValueError(f"W must have at least 1 row and 1 column, got shape {W.shape}")
+
     m, n = W.shape
 
     # Default names
