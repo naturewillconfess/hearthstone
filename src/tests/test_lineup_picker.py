@@ -135,9 +135,11 @@ class TestGetMatch:
     def test_get_match_drill_down(self):
         """Should be able to drill down from lineup to ban to match state."""
         W = np.full((5, 5), 0.5)
+        # winrate_only=False needed for full state drill-down
         result = lineup_picker(W, lineup_size=3, bans=1,
                                deck_names=['A', 'B', 'C', 'D', 'E'],
-                               match_format='conquest')
+                               match_format='conquest',
+                               winrate_only=False)
 
         # Get a match after lineup selection
         ban_result = result.get_match(hero_lineup=['A', 'B', 'C'],

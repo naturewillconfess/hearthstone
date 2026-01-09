@@ -56,7 +56,7 @@ def _compute_match(args):
     Must be a top-level function to be picklable for multiprocessing.
     Uses _worker_cache if available (set by _init_worker).
     """
-    i, j, W_sub, hero_names, opp_names, bans, match_format = args
+    i, j, W_sub, hero_names, opp_names, bans, match_format, winrate_only = args
 
     ban_result = ban_nash(
         W_sub,
@@ -64,7 +64,8 @@ def _compute_match(args):
         hero_names=hero_names,
         opp_names=opp_names,
         match_format=match_format,
-        _cache=_worker_cache
+        _cache=_worker_cache,
+        winrate_only=winrate_only
     )
 
     return i, j, ban_result
@@ -76,7 +77,8 @@ def lineup_picker(W: np.ndarray,
                   deck_names: Optional[List[str]] = None,
                   match_format: str = 'conquest',
                   parallel: Union[bool, int] = False,
-                  symmetric: bool = False) -> LineupResult:
+                  symmetric: bool = False,
+                  winrate_only: bool = True) -> LineupResult:
     """
     Find optimal lineup selection strategy for a tournament.
 
@@ -132,6 +134,14 @@ def lineup_picker(W: np.ndarray,
 
         Default is False. Set to True when your winrate matrix has
         this symmetry property (common in practice).
+
+    winrate_only : bool, optional
+        If True (default), use fast analytical solvers that only compute
+        winrates without full strategy information. This provides ~1.5x
+        speedup but limits drill-down into match states via get_match().
+
+        Set to False if you need to call result.get_match() and then
+        drill down into the conquest/lhs states (e.g., conquest_result.get_state()).
 
     Returns
     -------
@@ -236,7 +246,7 @@ def lineup_picker(W: np.ndarray,
             hero_lineup_names = [deck_names[k] for k in hero_lineup_idx]
             opp_lineup_names = [deck_names[k] for k in opp_lineup_idx]
             W_sub = W[np.ix_(list(hero_lineup_idx), list(opp_lineup_idx))]
-            tasks.append((i, j, W_sub, hero_lineup_names, opp_lineup_names, bans, match_format))
+            tasks.append((i, j, W_sub, hero_lineup_names, opp_lineup_names, bans, match_format, winrate_only))
 
     # Execute tasks (parallel or sequential)
     if parallel:
@@ -261,8 +271,9 @@ def lineup_picker(W: np.ndarray,
         # Sequential execution with caching
         # Cache submatrices up to (lineup_size - bans) which is the conquest game size
         cache = prewarm_cache(W, max_dim=lineup_size - bans)
-        for i, j, W_sub, hero_names, opp_names, b, fmt in tasks:
-            ban_result = ban_nash(W_sub, b, hero_names, opp_names, fmt, _cache=cache)
+        for i, j, W_sub, hero_names, opp_names, b, fmt, wo in tasks:
+            ban_result = ban_nash(W_sub, b, hero_names, opp_names, fmt, _cache=cache,
+                                  winrate_only=wo)
             matches[i][j] = ban_result
             G[i, j] = ban_result.winrate
 

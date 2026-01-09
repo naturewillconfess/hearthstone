@@ -45,7 +45,8 @@ def ban_nash(W: np.ndarray, bans: int,
              hero_names: Optional[List[str]] = None,
              opp_names: Optional[List[str]] = None,
              match_format: str = 'conquest',
-             _cache: Optional[Dict[bytes, tuple]] = None) -> BanResult:
+             _cache: Optional[Dict[bytes, tuple]] = None,
+             winrate_only: bool = False) -> BanResult:
     """
     Find optimal ban strategy for a tournament match.
 
@@ -199,7 +200,11 @@ def ban_nash(W: np.ndarray, bans: int,
             W_reduced = W[np.ix_(hero_decks_remaining, opp_decks_remaining)]
 
             # Run the match analysis on the reduced matrix WITH CORRECT NAMES
-            match_result = nash_fn(W_reduced, hero_remaining_names, opp_remaining_names, _cache=_cache)
+            # Note: only pass cache for conquest - lhs_nash builds internal payoff
+            # matrices that can collide with cached W submatrices
+            cache_to_use = _cache if match_format == 'conquest' else None
+            match_result = nash_fn(W_reduced, hero_remaining_names, opp_remaining_names,
+                                   _cache=cache_to_use, winrate_only=winrate_only)
 
             # Store the full match result for later retrieval
             matches[i][j] = match_result
