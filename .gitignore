@@ -24,3 +24,6 @@ venv/
 # Sphinx documentation
 docs/_build/
 .DS_store
+
+# Claude Code
+CLAUDE.md
