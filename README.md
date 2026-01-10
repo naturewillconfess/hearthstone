@@ -1,46 +1,73 @@
+# hearthstone
 
-<!-- README.md is generated from README.Rmd. Please edit that file -->
+A Python library for computing Nash equilibria in Hearthstone tournament formats.
 
-# hearthstone: tools for competitive HearthstoneⓇ players
-
-<!-- badges: start -->
-
-[![R-CMD-check](https://github.com/naturewillconfess/hearthstone/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/naturewillconfess/hearthstone/actions/workflows/R-CMD-check.yaml)
-<!-- badges: end -->
-
-hearthstone package is designed to help competitive Hearthstone players
-to make optimal decisions when playing in tournaments. In particular, it
-offers tools (R functions, vignettes) for finding subgame perfect Nash
-equilibria in mixed strategies for Conquest and Last Hero Standing.
+This package calculates optimal mixed strategies for deck selection in competitive Hearthstone tournaments, supporting both **Conquest** and **Last Hero Standing (LHS)** formats, with optional ban phases and lineup selection.
 
 ## Installation
 
-You can install the latest version of hearthstone with:
-
-``` r
-install.packages("devtools")
-devtools::install_github("naturewillconfess/hearthstone")
+```bash
+pip install hearthstone
 ```
 
-## What’s included in this pre-alpha version
+Or install from source:
 
-- [Vignette](https://github.com/naturewillconfess/hearthstone/tree/master/vignettes)
-  on Conquest. Check it out!
-- R functions
-  - `conquest_nash()` and for determining Nash equilibrial strategy and
-    winrates in Conquest
-  - `LHS_nash()` for determining Nash equilibrial strategy and winrates
-    in LHS
-  - `ban_nash()` for determining Nash equilibrial bans in Conquest ban
-    phase
+```bash
+git clone https://github.com/savakian/hearthstone.git
+cd hearthstone
+pip install .
+```
 
-## News
+For development:
 
-Version 0.3.0 is here! I’ve removed everything related to deprecated
-formats like Strike, Specialist and Conquest with Shields.
+```bash
+pip install -e ".[dev]"
+```
 
-## Legal disclaimer
+## Documentation
 
-Hearthstone is a trademark or registered trademark of Blizzard
-Entertainment, Inc., in the U.S. and/or other countries. I’m not
-affiliated with Blizzard Entertainment, Inc. in any way.
+Full documentation is available at: **[docs/_build/html/index.html](docs/_build/html/index.html)**
+
+To build the documentation locally:
+
+```bash
+pip install -e ".[docs]"
+cd docs && make html
+```
+
+## Quick Example
+
+```python
+import numpy as np
+from hearthstone import conquest_nash
+
+# W[i,j] = probability that Hero's deck i beats Opponent's deck j
+W = np.array([
+    [0.55, 0.45, 0.60],
+    [0.50, 0.50, 0.50],
+    [0.40, 0.55, 0.45],
+])
+
+result = conquest_nash(W, hero_names=['Aggro', 'Combo', 'Control'],
+                       opp_names=['Aggro', 'Combo', 'Control'])
+
+print(f"Match winrate: {result.winrate:.1%}")
+print(f"Hero strategy: {result.hero_strategy}")
+```
+
+## Features
+
+- **Conquest format**: Winner's deck eliminated
+- **Last Hero Standing (LHS)**: Loser's deck eliminated, winner keeps playing
+- **Ban phase**: Optimal ban strategies before matches
+- **Lineup picker**: Optimal lineup selection from a deck pool
+- **Fast solvers**: Analytical 2v2/3v3 solvers with `winrate_only=True`
+- **Parallel computation**: Multi-core support for large problems
+
+## License
+
+MIT License
+
+## Disclaimer
+
+Hearthstone is a trademark of Blizzard Entertainment, Inc. This project is not affiliated with Blizzard Entertainment.

@@ -4,3 +4,26 @@ inst/doc
 .Rproj.user
 .Rproj
 .Rhistory
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+*.egg
+dist/
+build/
+.eggs/
+.pytest_cache/
+*.so
+.Python
+env/
+venv/
+.venv/
+
+# Sphinx documentation
+docs/_build/
+.DS_store
+
+# Claude Code
+CLAUDE.md
